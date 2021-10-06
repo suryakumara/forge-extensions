@@ -1,3 +1,6 @@
+import CoordinateConverter from "./lib/CoordinateConverter";
+import "./css/main.css";
+
 /* global Autodesk THREE mapboxgl GLTFLoader */
 
 class BeeInventor extends Autodesk.Viewing.Extension {
@@ -94,6 +97,11 @@ class CustomPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.tagId = null;
 
     // Initial Value
+    this.coordinateConverter = new CoordinateConverter(
+      25.069771049083982,
+      121.52045303099948
+    );
+
     this.centerLat = 25.069771049083982;
     this.centerLong = 121.52045303099948;
     this.angle = 135;
@@ -108,12 +116,12 @@ class CustomPanel extends Autodesk.Viewing.UI.DockingPanel {
 
     this.iconMapbox = [
       {
-        url: "http://localhost:5000/pin_png/img_dasloop_pin_online.png",
+        url: `${CDN_DOMAIN}/assets/images/png/img_dasloop_pin_online.png`,
         id: "worker",
         longLat: [121.52045833593478, 25.069785141828287],
       },
       {
-        url: "http://localhost:5000/pin_png/img_gps_plant_pin_online.png",
+        url: `${CDN_DOMAIN}/assets/images/png/img_gps_plant_pin_online.png`,
         id: "excavator",
         longLat: [121.5203549994178, 25.069866644921674],
       },
@@ -214,16 +222,10 @@ class CustomPanel extends Autodesk.Viewing.UI.DockingPanel {
   // initial load
   loadWorker(modelBuilder) {
     if (modelBuilder) {
-      // this.newModel.addNewWorker(
-      //   modelBuilder,
-      //   parseInt(4210000000000195),
-      //   0,
-      //   0
-      // );
       this.newModel.addWorkerTag(modelBuilder, parseInt(1), 0, 0);
       this.newModel.addBeacon(
         modelBuilder,
-        parseInt(1),
+        parseInt(123),
         this.deviceX,
         this.deviceY
       );
@@ -238,14 +240,14 @@ class CustomPanel extends Autodesk.Viewing.UI.DockingPanel {
         modelBuilder,
         parseInt(1234),
         this.positionExcavator_X,
-        this.positionRestrictedArea_Y
+        this.positionExcavator_Y
       );
     }
   }
 
   async loadPlantModel() {
     await this.viewer.loadModel(
-      "extensions/BeeInventor/contents/assets/excavator.gltf",
+      `${CDN_DOMAIN}/assets/models/excavator.gltf`,
       {},
       (plant) => {
         this.plant = plant;
@@ -255,7 +257,7 @@ class CustomPanel extends Autodesk.Viewing.UI.DockingPanel {
 
   async loadWorkerModel() {
     await this.viewer.loadModel(
-      "extensions/BeeInventor/contents/assets/human.gltf",
+      `${CDN_DOMAIN}/assets/models/human.gltf`,
       {},
       (human) => {
         this.human = human;
@@ -309,12 +311,11 @@ class CustomPanel extends Autodesk.Viewing.UI.DockingPanel {
 
       this.newModel.changePositionSpecific(
         this.modelBuilder,
-        datas.tagId,
+        parseInt(1),
         position[0],
         position[1]
       );
 
-      console.log(this.human);
       if (this.human) {
         this.human.setPlacementTransform(
           new THREE.Matrix4().setPosition({
@@ -643,12 +644,11 @@ class CustomPanel extends Autodesk.Viewing.UI.DockingPanel {
       latshowvalue.value = latitudeByClick;
       longshowvalue.value = longitudeByClick;
 
-      const pos = this.geographicToCartesian(
-        this.centerLat,
-        this.centerLong,
+      const pos = this.coordinateConverter.geographicToCartesian(
         latitudeByClick,
         longitudeByClick
       );
+
       positionX.value = pos.x;
       positionY.value = pos.y;
 
@@ -949,43 +949,6 @@ class CustomPanel extends Autodesk.Viewing.UI.DockingPanel {
     };
   }
 
-  geographicToCartesian = (
-    latitudeCenter,
-    longitudeCenter,
-    latitude,
-    longitude
-  ) => {
-    let distanceX = this.distance(
-      latitudeCenter,
-      longitudeCenter,
-      latitudeCenter,
-      longitude
-    );
-    let distanceY = this.distance(
-      latitudeCenter,
-      longitudeCenter,
-      latitude,
-      longitudeCenter
-    );
-
-    if (longitudeCenter * longitude > 0) {
-      if (longitudeCenter > longitude) {
-        distanceX *= -1;
-      }
-    } else if (
-      longitudeCenter < 0 &&
-      longitude > 0 &&
-      Math.abs(longitudeCenter - longitude) > 180
-    ) {
-      distanceX *= -1;
-    }
-
-    if (latitudeCenter > latitude) {
-      distanceY *= -1;
-    }
-    return this.toForgeCoordinate({ x: distanceX, y: distanceY });
-  };
-
   distance = (lat1, long1, lat2, long2) => {
     const R = 6371e3;
     const φ1 = (lat1 * Math.PI) / 180;
@@ -1020,7 +983,7 @@ class Model {
     let modelGeometry = new THREE.Geometry();
     const globalMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
     const texture = THREE.ImageUtils.loadTexture(
-      "http://127.0.0.1:5000/pin_png/img_gps_dasloop_online.png"
+      `${CDN_DOMAIN}/assets/images/png/img_gps_dasloop_online.png`
     );
     texture.minFilter = THREE.LinearFilter;
     const workerMaterial = new THREE.MeshBasicMaterial({
@@ -1162,7 +1125,7 @@ class Model {
   addExcavator(modelBuilder, dbId, x = 0, y = 0, z = 1) {
     const globalMaterial = new THREE.MeshBasicMaterial({ color: "#ff9500" });
     const texture = THREE.ImageUtils.loadTexture(
-      "http://127.0.0.1:5000/pin_png/img_gps_plant_online-3.png"
+      `${CDN_DOMAIN}/assets/images/png/img_gps_plant_online-3.png`
     );
     texture.minFilter = THREE.LinearFilter;
     const excavatorMaterial = new THREE.MeshBasicMaterial({

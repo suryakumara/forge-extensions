@@ -1,4 +1,4 @@
-distance = (lat1, long1, lat2, long2) => {
+export const distance = (lat1, long1, lat2, long2) => {
   const R = 6371e3;
   const φ1 = (lat1 * Math.PI) / 180;
   const φ2 = (lat2 * Math.PI) / 180;

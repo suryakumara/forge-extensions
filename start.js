@@ -39,7 +39,7 @@ fs.writeFileSync(
   }
 );
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT_SERVER || 3000;
 const config = require("./config");
 if (
   config.credentials.client_id == null ||
