@@ -97,7 +97,7 @@ export default class CoordinateConverter {
     if (latitudeCenter > latitude) {
       distanceY *= -1;
     }
-    return toForgeCoordinate({ x: distanceX, y: distanceY });
+    return { x: distanceX, y: distanceY };
   };
 
   cartesianToGeographic = (x, y) => {

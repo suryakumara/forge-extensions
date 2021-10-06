@@ -644,7 +644,7 @@ class CustomPanel extends Autodesk.Viewing.UI.DockingPanel {
       latshowvalue.value = latitudeByClick;
       longshowvalue.value = longitudeByClick;
 
-      const pos = this.coordinateConverter.geographicToCartesian(
+      const pos = geographicToCartesian(
         latitudeByClick,
         longitudeByClick
       );
