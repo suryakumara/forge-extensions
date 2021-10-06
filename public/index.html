@@ -13,17 +13,36 @@
   <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/jstree/3.3.7/themes/default/style.min.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.min.css" />
   <!-- Autodesk Forge Viewer files -->
-  <link rel="stylesheet" href="https://developer.api.autodesk.com/modelderivative/v2/viewers/7.*/style.min.css" type="text/css">
+  <link rel="stylesheet" href="https://developer.api.autodesk.com/modelderivative/v2/viewers/7.*/style.min.css"
+    type="text/css">
   <script src="https://developer.api.autodesk.com/modelderivative/v2/viewers/7.*/viewer3D.min.js"></script>
   <!-- this project files -->
   <link rel="stylesheet" type="text/css" href="css/w2ui-1.4.min.css" />
   <link href="css/main.css" rel="stylesheet" />
+
+  <!-- import lib -->
+
+
+
   <link href="extensions/extensionloader.css" rel="stylesheet" />
   <script src="js/ForgeTree.js"></script>
   <script src="js/ForgeViewer.js"></script>
-  <script src="/extensions/extensionloader.js"></script>
+  <script src="extensions/extensionloader.js"></script>
   <!-- Extension Dependencies -->
-  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDBV72JOytVAAXlvey3kGB-XCu4S5XUxOs" type="text/javascript"></script>
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDBV72JOytVAAXlvey3kGB-XCu4S5XUxOs"
+    type="text/javascript"></script>
+  <script>
+    self._typeface_js = { faces: THREE.FontUtils.faces, loadFace: THREE.FontUtils.loadFace };
+  </script>
+  <script src="./extensions/BeeInventor/contents/fonts/Monaco_Regular.js"></script>
+  <!-- <script src="./extensions/BeeInventor/contents/GLTFLoader.js" type="module"></script> -->
+  <!-- <script src="https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/loaders/GLTFLoader.js"></script> -->
+  <!-- Hanlde mapbox -->
+
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.4.1/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.4.1/mapbox-gl.js"></script>
+  <!-- <script src="https://threejsfundamentals.org/threejs/resources/threejs/r132/examples/jsm/loaders/GLTFLoader.js" -->
+  <!-- type="module"></script> -->
 </head>
 
 <body>
@@ -64,19 +83,20 @@
         </div>
       </div>
       <div class="col-sm-8 fill nopadding">
-        <div class="tobegin"><i class="fas fa-arrow-left"></i>&nbsp;&nbsp;Select a model to load viewer and extensions</div>
+        <div class="tobegin"><i class="fas fa-arrow-left"></i>&nbsp;&nbsp;Select a model to load viewer and extensions
+        </div>
         <div id="forgeViewer"></div>
       </div>
       <div class="col-sm-2 fill right_panel">
 
         <div class="panel panel-default fill">
           <h4 class="panel-heading extensions-heading" data-toggle="tooltip">Extensions</h4>
-        
+
           <ul class="nav nav-tabs pl">
             <li class="active"><a data-toggle="tab" href="#custom">Custom</a></li>
             <li><a data-toggle="tab" href="#inbuilt">Built-in</a></li>
           </ul>
-        
+
           <div class="tab-content pl">
             <div id="custom" class="tab-pane fade in active">
               <div id="extensionlist"></div>
@@ -84,7 +104,7 @@
             <div id="inbuilt" class="tab-pane fade">
               <div id="inbuiltextensionlist"></div>
             </div>
-          </div>          
+          </div>
         </div>
 
       </div>
@@ -130,17 +150,18 @@
           <h4 class="modal-title" id="myModalLabel">Edit Extension Options</h4>
         </div>
         <div class="modal-body">
-          <textarea type="text" id="editextensionconfig" class="form-control"></textarea> 
-          
+          <textarea type="text" id="editextensionconfig" class="form-control"></textarea>
+
         </div>
         <div class="modal-footer">
           <span><a id="learnmore" target="_blank" href="">Learn more</a></span>
-          <button type="button" class="btn  btn-success" id="saveconfig" data-dismiss="modal" aria-label="Cancel">Apply</button>
+          <button type="button" class="btn  btn-success" id="saveconfig" data-dismiss="modal"
+            aria-label="Cancel">Apply</button>
         </div>
       </div>
     </div>
   </div>
-
+  <script type="module" src="./extensions/BeeInventor/contents/lib/CoordinateConverter.js"></script>
 </body>
 
 </html>
