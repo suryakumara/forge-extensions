@@ -1,3 +1,6 @@
+import { distance } from "./lib/CoordinateConverter";
+import './css/main.css';
+
 /* global Autodesk THREE mapboxgl GLTFLoader */
 
 class BeeInventor extends Autodesk.Viewing.Extension {
@@ -108,12 +111,12 @@ class CustomPanel extends Autodesk.Viewing.UI.DockingPanel {
 
     this.iconMapbox = [
       {
-        url: "http://localhost:5000/pin_png/img_dasloop_pin_online.png",
+        url: `${CDN_DOMAIN}/assets/images/png/img_dasloop_pin_online.png`,
         id: "worker",
         longLat: [121.52045833593478, 25.069785141828287],
       },
       {
-        url: "http://localhost:5000/pin_png/img_gps_plant_pin_online.png",
+        url: `${CDN_DOMAIN}/assets/images/png/img_gps_plant_pin_online.png`,
         id: "excavator",
         longLat: [121.5203549994178, 25.069866644921674],
       },
@@ -171,7 +174,7 @@ class CustomPanel extends Autodesk.Viewing.UI.DockingPanel {
 
     // Features
     this.loadGLTFModel();
-    this.getDataUWB();
+    // this.getDataUWB();
     this.setNewWorker();
     this.setNewRestrictedArea();
     this.setNewBeacon();
@@ -243,7 +246,7 @@ class CustomPanel extends Autodesk.Viewing.UI.DockingPanel {
     await this.viewer.loadExtension("Autodesk.glTF");
 
     await this.viewer.loadModel(
-      "extensions/BeeInventor/contents/assets/excavator8.gltf",
+      "/assets/models/excavator8.gltf",
       {},
       (model) => {
         console.log(model);
@@ -946,13 +949,13 @@ class CustomPanel extends Autodesk.Viewing.UI.DockingPanel {
     latitude,
     longitude
   ) => {
-    let distanceX = this.distance(
+    let distanceX = distance(
       latitudeCenter,
       longitudeCenter,
       latitudeCenter,
       longitude
     );
-    let distanceY = this.distance(
+    let distanceY = distance(
       latitudeCenter,
       longitudeCenter,
       latitude,
@@ -1010,7 +1013,7 @@ class Model {
     let modelGeometry = new THREE.Geometry();
     const globalMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
     const texture = THREE.ImageUtils.loadTexture(
-      "http://127.0.0.1:5000/pin_png/img_gps_dasloop_online.png"
+      `${CDN_DOMAIN}/assets/images/png/img_gps_dasloop_online.png`
     );
     texture.minFilter = THREE.LinearFilter;
     const workerMaterial = new THREE.MeshBasicMaterial({
@@ -1120,7 +1123,7 @@ class Model {
   addExcavator(modelBuilder, dbId, x = 0, y = 0, z = 1) {
     const globalMaterial = new THREE.MeshBasicMaterial({ color: "#ff9500" });
     const texture = THREE.ImageUtils.loadTexture(
-      "http://127.0.0.1:5000/pin_png/img_gps_plant_online-3.png"
+      `${CDN_DOMAIN}/assets/images/png/img_gps_plant_online-3.png`
     );
     texture.minFilter = THREE.LinearFilter;
     const excavatorMaterial = new THREE.MeshBasicMaterial({

@@ -65,3 +65,7 @@ typings/
 
 # extension config
 public/extensions/config.json
+
+public/extensions/BeeInventor/contents/main.js
+
+dist
