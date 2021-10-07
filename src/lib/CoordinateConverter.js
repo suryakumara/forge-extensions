@@ -1,10 +1,5 @@
-export default class CoordinateConverter {
+export class CoordinateConverter {
   R = 6371000;
-
-  center = {
-    longitude,
-    latitude,
-  };
 
   static degreeToRadian(degree) {
     return (degree * Math.PI) / 180;
@@ -51,7 +46,7 @@ export default class CoordinateConverter {
       latitude - this.center.latitude
     );
     const Δλ = CoordinateConverter.degreeToRadian(
-      (longitude = this.center.longitude)
+      longitude - this.center.longitude
     );
     const a =
       Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
@@ -61,40 +56,23 @@ export default class CoordinateConverter {
     return d;
   };
 
-  geographicToCartesian = (
-    latitudeCenter,
-    longitudeCenter,
-    latitude,
-    longitude
-  ) => {
-    let distanceX = this.distance(
-      latitudeCenter,
-      longitudeCenter,
-      latitudeCenter,
-      longitude
-    );
-    let distanceY = this.distance(
-      latitudeCenter,
-      longitudeCenter,
-      latitude,
-      longitudeCenter
-    );
+  geographicToCartesian = (latitude, longitude) => {
+    let distanceX = this.distance(this.center.latitude, longitude);
+    let distanceY = this.distance(latitude, this.center.longitude);
 
-    if (longitudeCenter * longitude > 0) {
-      console.log(longitudeCenter * longitude);
-
-      if (longitudeCenter > longitude) {
+    if (this.center.longitude * longitude > 0) {
+      if (this.center.longitude > longitude) {
         distanceX *= -1;
       }
     } else if (
-      longitudeCenter < 0 &&
+      this.center.longitude < 0 &&
       longitude > 0 &&
-      Math.abs(longitudeCenter - longitude) > 180
+      Math.abs(this.center.longitude - longitude) > 180
     ) {
       distanceX *= -1;
     }
 
-    if (latitudeCenter > latitude) {
+    if (this.center.latitude > latitude) {
       distanceY *= -1;
     }
     return { x: distanceX, y: distanceY };
