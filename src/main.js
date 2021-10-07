@@ -1,4 +1,4 @@
-import CoordinateConverter from "./lib/CoordinateConverter";
+// import { distance } from "./lib/CoordinateConverter";
 import "./css/main.css";
 
 /* global Autodesk THREE mapboxgl GLTFLoader */
@@ -62,7 +62,7 @@ class BeeInventor extends Autodesk.Viewing.Extension {
       // console.log(panel.map);
       this.panel.setVisible(!this.panel.isVisible());
     };
-    this._button.setToolTip("BeeInventor IoT");
+    this._button.setToolTip("Docking Panel");
     this._button.addClass("dockingPanel");
     this._group.addControl(this._button);
   }
@@ -97,11 +97,6 @@ class CustomPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.tagId = null;
 
     // Initial Value
-    this.coordinateConverter = new CoordinateConverter(
-      25.069771049083982,
-      121.52045303099948
-    );
-
     this.centerLat = 25.069771049083982;
     this.centerLong = 121.52045303099948;
     this.angle = 135;
@@ -137,8 +132,8 @@ class CustomPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.valueX = null;
     this.valueY = null;
     this.valueZ = null;
-    this.human = null;
-    this.plant = null;
+    this.humanModel1 = null;
+    this.excavator1 = null;
     this.positionValue = null;
     this.positionUWB = null;
     this.datasAPI = null;
@@ -162,7 +157,6 @@ class CustomPanel extends Autodesk.Viewing.UI.DockingPanel {
         console.log("modelBuilder Created.");
       });
 
-    this.viewer.loadExtension("Autodesk.glTF");
     this.newModel = new Model(this.viewer, this.options);
 
     // mapbox
@@ -179,9 +173,8 @@ class CustomPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.map.zoomTo(19.5);
 
     // Features
-    this.loadPlantModel();
-    this.loadWorkerModel();
-    this.getDataUWB();
+    this.loadGLTFModel();
+    // this.getDataUWB();
     this.setNewWorker();
     this.setNewRestrictedArea();
     this.setNewBeacon();
@@ -208,7 +201,6 @@ class CustomPanel extends Autodesk.Viewing.UI.DockingPanel {
         .catch((err) => console.log(err));
     }, 2000);
   }
-
   calculateUWBPosition(d, directionDegree, degreeAOA, deviceX, deviceY) {
     const r = d / 100;
     const radian = ((-degreeAOA + directionDegree) * Math.PI) / 180;
@@ -222,10 +214,15 @@ class CustomPanel extends Autodesk.Viewing.UI.DockingPanel {
   // initial load
   loadWorker(modelBuilder) {
     if (modelBuilder) {
-      this.newModel.addWorkerTag(modelBuilder, parseInt(1), 0, 0);
+      this.newModel.addNewWorker(
+        modelBuilder,
+        parseInt(4210000000000195),
+        0,
+        0
+      );
       this.newModel.addBeacon(
         modelBuilder,
-        parseInt(123),
+        parseInt(1),
         this.deviceX,
         this.deviceY
       );
@@ -240,27 +237,20 @@ class CustomPanel extends Autodesk.Viewing.UI.DockingPanel {
         modelBuilder,
         parseInt(1234),
         this.positionExcavator_X,
-        this.positionExcavator_Y
+        this.positionRestrictedArea_Y
       );
     }
   }
 
-  async loadPlantModel() {
-    await this.viewer.loadModel(
-      `${CDN_DOMAIN}/assets/models/excavator.gltf`,
-      {},
-      (plant) => {
-        this.plant = plant;
-      }
-    );
-  }
+  async loadGLTFModel() {
+    await this.viewer.loadExtension("Autodesk.glTF");
 
-  async loadWorkerModel() {
     await this.viewer.loadModel(
-      `${CDN_DOMAIN}/assets/models/human.gltf`,
+      "/assets/models/excavator8.gltf",
       {},
-      (human) => {
-        this.human = human;
+      (model) => {
+        console.log(model);
+        this.excavator1 = model;
       }
     );
   }
@@ -285,7 +275,10 @@ class CustomPanel extends Autodesk.Viewing.UI.DockingPanel {
       // mapbox dasloop
       this.updateDasloopPosition(positionIndoor);
 
-      const tr = this.plant.getPlacementTransform();
+      const tr = this.excavator1.getPlacementTransform();
+      console.log(tr.elements[12]);
+      console.log(tr.elements[13]);
+      console.log(tr.elements[14]);
 
       // const excavator = this.newModel.objects[1234];
 
@@ -311,20 +304,20 @@ class CustomPanel extends Autodesk.Viewing.UI.DockingPanel {
 
       this.newModel.changePositionSpecific(
         this.modelBuilder,
-        parseInt(1),
+        datas.tagId,
         position[0],
         position[1]
       );
 
-      if (this.human) {
-        this.human.setPlacementTransform(
-          new THREE.Matrix4().setPosition({
-            x: position[0],
-            y: position[1],
-            z: 0,
-          })
-        );
-      }
+      // if (this.humanModel1) {
+      //   this.humanModel1.setPlacementTransform(
+      //     new THREE.Matrix4().setPosition({
+      //       x: position[0],
+      //       y: position[1],
+      //       z: 0,
+      //     })
+      //   );
+      // }
     }
   }
 
@@ -644,16 +637,17 @@ class CustomPanel extends Autodesk.Viewing.UI.DockingPanel {
       latshowvalue.value = latitudeByClick;
       longshowvalue.value = longitudeByClick;
 
-      const pos = geographicToCartesian(
+      const pos = this.geographicToCartesian(
+        this.centerLat,
+        this.centerLong,
         latitudeByClick,
         longitudeByClick
       );
-
       positionX.value = pos.x;
       positionY.value = pos.y;
 
-      if (this.plant) {
-        this.plant.setPlacementTransform(
+      if (this.excavator1) {
+        this.excavator1.setPlacementTransform(
           new THREE.Matrix4().setPosition({
             x: pos.x,
             y: pos.y,
@@ -949,6 +943,43 @@ class CustomPanel extends Autodesk.Viewing.UI.DockingPanel {
     };
   }
 
+  geographicToCartesian = (
+    latitudeCenter,
+    longitudeCenter,
+    latitude,
+    longitude
+  ) => {
+    let distanceX = distance(
+      latitudeCenter,
+      longitudeCenter,
+      latitudeCenter,
+      longitude
+    );
+    let distanceY = distance(
+      latitudeCenter,
+      longitudeCenter,
+      latitude,
+      longitudeCenter
+    );
+
+    if (longitudeCenter * longitude > 0) {
+      if (longitudeCenter > longitude) {
+        distanceX *= -1;
+      }
+    } else if (
+      longitudeCenter < 0 &&
+      longitude > 0 &&
+      Math.abs(longitudeCenter - longitude) > 180
+    ) {
+      distanceX *= -1;
+    }
+
+    if (latitudeCenter > latitude) {
+      distanceY *= -1;
+    }
+    return this.toForgeCoordinate({ x: distanceX, y: distanceY });
+  };
+
   distance = (lat1, long1, lat2, long2) => {
     const R = 6371e3;
     const φ1 = (lat1 * Math.PI) / 180;
@@ -970,7 +1001,6 @@ class Model {
     this.options = options;
     this.position = null;
     this.workerId = null;
-    this.workerTagId = null;
     this.model = null;
     this.humanModel = null;
     this.restrictedArea = null;
@@ -1021,38 +1051,6 @@ class Model {
     this.objects[this.humanModel.userData.id] = this.humanModel;
     this.humanModel.dbId = dbId;
     modelBuilder.addMesh(this.humanModel);
-  }
-
-  addWorkerTag(modelBuilder, dbId, x = 0, y = 0, z = 1) {
-    let modelGeometry = new THREE.Geometry();
-    const globalMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-    const sphere = new THREE.SphereGeometry(0.4, 32, 16);
-    const textGeometry = new THREE.TextGeometry(`worker:${dbId}`, {
-      font: "monaco",
-      size: 1,
-      height: 0,
-      curveSegments: 3,
-    });
-
-    const workerTagMesh = new THREE.Mesh(textGeometry, globalMaterial);
-    workerTagMesh.matrix.setPosition(new THREE.Vector3(0, 0, 1.3));
-    workerTagMesh.matrix.scale(new THREE.Vector3(0.2, 0.2, 0.2));
-    const sphereMesh = new THREE.Mesh(sphere, globalMaterial);
-
-    sphereMesh.matrix.setPosition(new THREE.Vector3(0, 0, 1));
-    sphereMesh.matrix.scale(new THREE.Vector3(0.2, 0.2, 0.2));
-    modelGeometry.merge(sphereMesh.geometry, sphereMesh.matrix);
-    modelGeometry.merge(workerTagMesh.geometry, workerTagMesh.matrix);
-    modelGeometry.computeVertexNormals();
-    const workerTagBuffer = new THREE.BufferGeometry().fromGeometry(
-      modelGeometry
-    );
-    this.workerTagId = new THREE.Mesh(workerTagBuffer, globalMaterial);
-    this.workerTagId.matrix.setPosition(new THREE.Vector3(x, y, z));
-    this.workerTagId.userData.id = dbId;
-    this.objects[this.workerTagId.userData.id] = this.workerTagId;
-    this.workerTagId.dbId = dbId;
-    modelBuilder.addMesh(this.workerTagId);
   }
 
   addNewWorker(modelBuilder, dbId, x = 0, y = 0, z = 1) {
@@ -1230,7 +1228,10 @@ class Model {
   }
 
   lookAtMe(modelBuilder, dbId) {
+    // this.objects[dbId].lookAt(this.viewer.getCamera().clone().position);
+    // console.log(this.objects[dbId].matrix.makeRotationFromQuaternion());
     console.log(modelBuilder);
+
     this.objects[dbId].matrix.makeRotationFromQuaternion(
       this.viewer.getCamera().clone().quaternion
     );
