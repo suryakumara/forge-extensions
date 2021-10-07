@@ -57,23 +57,25 @@ export class BeeInventorModel {
     modelBuilder.addMesh(this.humanModel);
   }
 
-  addWorkerTag(modelBuilder, dbId, x = 0, y = 0, z = 1) {
+  addWorkerTag(modelBuilder, dbId, position) {
     let modelGeometry = new THREE.Geometry();
     const globalMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
     const sphere = new THREE.SphereGeometry(0.4, 32, 16);
-    const textGeometry = new THREE.TextGeometry(`worker:${dbId}`, {
+    const textGeometry = new THREE.TextGeometry(`Worker:${dbId}`, {
       font: "monaco",
       size: 1,
       height: 0,
       curveSegments: 3,
     });
-
+    textGeometry.computeBoundingBox();
     const workerTagMesh = new THREE.Mesh(textGeometry, globalMaterial);
-    workerTagMesh.matrix.setPosition(new THREE.Vector3(0, 0, 1.3));
+    workerTagMesh.matrix.makeRotationX(-4.7);
+    workerTagMesh.matrix.setPosition(new THREE.Vector3(0, 0, 2.8));
     workerTagMesh.matrix.scale(new THREE.Vector3(0.2, 0.2, 0.2));
+
     const sphereMesh = new THREE.Mesh(sphere, globalMaterial);
 
-    sphereMesh.matrix.setPosition(new THREE.Vector3(0, 0, 1));
+    sphereMesh.matrix.setPosition(new THREE.Vector3(0, 0, 2.5));
     sphereMesh.matrix.scale(new THREE.Vector3(0.2, 0.2, 0.2));
     modelGeometry.merge(sphereMesh.geometry, sphereMesh.matrix);
     modelGeometry.merge(workerTagMesh.geometry, workerTagMesh.matrix);
@@ -82,7 +84,9 @@ export class BeeInventorModel {
       modelGeometry
     );
     this.workerTagId = new THREE.Mesh(workerTagBuffer, globalMaterial);
-    this.workerTagId.matrix.setPosition(new THREE.Vector3(x, y, z));
+    this.workerTagId.matrix.setPosition(
+      new THREE.Vector3(position[0], position[1], position[2])
+    );
     this.workerTagId.userData.id = dbId;
     this.objects[this.workerTagId.userData.id] = this.workerTagId;
     this.workerTagId.dbId = dbId;

@@ -1,6 +1,4 @@
 export class CoordinateConverter {
-  R = 6371000;
-
   static degreeToRadian(degree) {
     return (degree * Math.PI) / 180;
   }
@@ -21,6 +19,7 @@ export class CoordinateConverter {
       latitude,
       longitude,
     };
+    this.R = 6371000;
   }
 
   getCenter() {
@@ -39,7 +38,6 @@ export class CoordinateConverter {
    */
 
   distance = (latitude, longitude) => {
-    const R = 6371e3;
     const φ1 = CoordinateConverter.degreeToRadian(this.center.latitude);
     const φ2 = CoordinateConverter.degreeToRadian(latitude);
     const Δφ = CoordinateConverter.degreeToRadian(
@@ -79,17 +77,60 @@ export class CoordinateConverter {
   };
 
   cartesianToGeographic = (x, y) => {
+    const rEarth = 6378;
     const pi = Math.PI;
     const xPos = x / 1000;
     const yPos = y / 1000;
-    const lat = this.center.latitude + (yPos / this.R) * (180 / pi);
+    const lat = this.center.latitude + (yPos / rEarth) * (180 / pi);
     const lng =
       this.center.longitude +
-      ((xPos / this.R) * (180 / pi)) /
+      ((xPos / rEarth) * (180 / pi)) /
         Math.cos((this.center.latitude * pi) / 180);
-    return {
-      latitude: lat,
-      longitude: lng,
-    };
+
+    return [lng, lat];
+  };
+
+  calculateUWBPosition(d, directionDegree, degreeAOA, deviceX, deviceY) {
+    const r = d / 100;
+    const radian = ((-degreeAOA + directionDegree) * Math.PI) / 180;
+    let newX = r * Math.cos(radian);
+    let newY = r * Math.sin(radian);
+    newX += deviceX;
+    newY += deviceY;
+    return [newX, newY];
+  }
+
+  toLatitudeLongitudeEveryCorner(positionEveryCorner) {
+    const newCoordinatesAfterRotate = [
+      [0, 0],
+      [0, 0],
+      [0, 0],
+      [0, 0],
+    ];
+
+    for (let i = 0; i < positionEveryCorner[0].length; i += 1) {
+      newCoordinatesAfterRotate[i] = this.cartesianToGeographic(
+        positionEveryCorner[0][i],
+        positionEveryCorner[1][i]
+      );
+    }
+    return newCoordinatesAfterRotate;
+  }
+
+  setCoordinateBuilding = () => {
+    const newCoordinatesAfterRotate = [
+      [0, 0],
+      [0, 0],
+      [0, 0],
+      [0, 0],
+    ];
+    for (let i = 0; i < this.BUILDING_CORNER_LOCATION.length; i += 1) {
+      newCoordinatesAfterRotate[i] = this.cartesianToGeographic(
+        this.BUILDING_CORNER_LOCATION[i][0],
+        this.BUILDING_CORNER_LOCATION[i][1]
+      );
+    }
+
+    return newCoordinatesAfterRotate;
   };
 }
