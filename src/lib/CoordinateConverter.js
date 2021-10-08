@@ -87,7 +87,7 @@ export class CoordinateConverter {
       ((xPos / rEarth) * (180 / pi)) /
         Math.cos((this.center.latitude * pi) / 180);
 
-    return [lng, lat];
+    return { latitude: lat, longitude: lng };
   };
 
   calculateUWBPosition(d, directionDegree, degreeAOA, deviceX, deviceY) {

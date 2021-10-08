@@ -60,7 +60,7 @@ class BeeInventor extends Autodesk.Viewing.Extension {
 
       this.panel.setVisible(!this.panel.isVisible());
     };
-    this._button.setToolTip("Docking Panel");
+    this._button.setToolTip("BeeInventor IoT");
     this._button.addClass("dockingPanel");
     this._group.addControl(this._button);
   }

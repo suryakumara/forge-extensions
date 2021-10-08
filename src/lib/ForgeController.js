@@ -18,25 +18,31 @@ export class ForgeController {
       `${CDN_DOMAIN}/assets/models/human.gltf`,
       {},
       (human) => {
-        const object = human;
-        object.setPlacementTransform(
+        human.setPlacementTransform(
           new THREE.Matrix4().setPosition({
             x: position[0],
             y: position[1],
             z: position[2],
           })
         );
-        this.objects.set(id, object);
+        this.objects.set(id, human);
       }
     );
   }
 
-  async loadPlantModel(id) {
+  async loadPlantModel(id, position) {
     await this.viewer.loadModel(
       `${CDN_DOMAIN}/assets/models/excavator.gltf`,
       {},
       (plant) => {
-        this.addObject(id, { plant, position });
+        plant.setPlacementTransform(
+          new THREE.Matrix4().setPosition({
+            x: position.x,
+            y: position.y,
+            z: 0,
+          })
+        );
+        this.objects.set(id, plant);
       }
     );
   }

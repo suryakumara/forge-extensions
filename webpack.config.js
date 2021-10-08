@@ -37,7 +37,7 @@ module.exports = {
           : JSON.stringify(""),
     }),
     new MiniCssExtractPlugin({
-      filename: 'css/[name].css'
+      filename: "[name].css",
     }),
   ],
   devtool:

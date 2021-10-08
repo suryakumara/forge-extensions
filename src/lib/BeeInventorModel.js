@@ -57,6 +57,38 @@ export class BeeInventorModel {
     modelBuilder.addMesh(this.humanModel);
   }
 
+  addPlantTag(modelBuilder, dbId, position) {
+    const sphere = new THREE.SphereGeometry(0.3, 32, 16);
+    const globalMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const textGeometry = new THREE.TextGeometry(`${dbId}`, {
+      font: "monaco",
+      size: 1,
+      height: 0,
+      curveSegments: 3,
+    });
+    const textMesh = new THREE.Mesh(textGeometry, globalMaterial);
+    const beaconMesh = new THREE.Mesh(sphere, globalMaterial);
+    textMesh.matrix.setPosition(new THREE.Vector3(0, 0.5, 0));
+    textMesh.matrix.scale(new THREE.Vector3(0.2, 0.2, 0.2));
+    let beaconGeo = new THREE.Geometry();
+    beaconGeo.merge(textMesh.geometry, textMesh.matrix);
+    beaconGeo.merge(beaconMesh.geometry, beaconMesh.matrix);
+    beaconGeo.computeVertexNormals();
+
+    const beaconBuffer = new THREE.BufferGeometry().fromGeometry(beaconGeo);
+    this.beacon = new THREE.Mesh(beaconBuffer, globalMaterial);
+    this.beacon.matrix.setPosition(
+      new THREE.Vector3(position[0], position[1], position[2])
+    );
+
+    // Add to object userData
+    this.beacon.userData.id = dbId;
+    this.objects[this.beacon.userData.id] = this.beacon;
+
+    this.beacon.dbId = dbId;
+    modelBuilder.addMesh(this.beacon);
+  }
+
   addWorkerTag(modelBuilder, dbId, position) {
     let modelGeometry = new THREE.Geometry();
     const globalMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
@@ -263,7 +295,7 @@ export class BeeInventorModel {
       // const position = new THREE.Vector3();
       // const scale = position.setFromMatrixScale(this.objects[dbId].matrixWorld);
     } else {
-      console.log("there is no object on this scene !");
+      console.log("no object on this scene !");
     }
   }
 
