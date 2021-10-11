@@ -30,7 +30,7 @@
     "loadonstartup": "false",
     "filestoload": {
         "cssfiles": [
-            "./css/main.css"
+            "main.css"
         ],
         "jsfiles": [
             "main.js"

@@ -71,6 +71,11 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     });
     this.map.zoomTo(19.5);
 
+    this.centralMarker = new mapboxgl.Marker();
+    this.centralMarker
+      .setLngLat([121.52045303099948, 25.069771049083982])
+      .addTo(this.map);
+
     this.datas = null;
     this.getDataUWB();
   }
@@ -95,65 +100,96 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       datas.positionPlant[0],
       datas.positionPlant[1]
     );
-    console.log(positionPlant);
-    // if (
-    //   !this.forgeController.objects.has(datas.id) &&
-    //   !this.beeController.objects[datas.id] &&
-    //   this.modelBuilder &&
-    //   !this.markerMap.has(datas.id) &&
-    //   !this.forgeController.objects.has(datas.idPlant)
-    // ) {
-    //   this.forgeController.loadWorkerModel(datas.id, datas.position);
-    //   this.beeController.addWorkerTag(
-    //     this.modelBuilder,
-    //     datas.id,
-    //     datas.position
-    //   );
-    //   // const el = document.createElement("div");
-    //   // el.className = "worker workerMarker";
-    //   // const newMarker = new mapboxgl.Marker(el)
-    //   //   .setLngLat({
-    //   //     lat: geo.latitude,
-    //   //     lng: geo.longitude,
-    //   //   })
-    //   //   .addTo(this.map);
-    //   // this.markerMap.set(datas.id, newMarker);
+    const forgeObject = this.forgeController.objects;
+    if (
+      !forgeObject.has(datas.id) &&
+      this.modelBuilder &&
+      !this.markerMap.has(datas.id)
+    ) {
+      this.forgeController.loadWorkerModel(datas.id, datas.position);
+      this.beeController.addWorkerId(
+        this.modelBuilder,
+        datas.id,
+        datas.position
+      );
+      const el = document.createElement("div");
+      el.className = "worker workerMarker";
+      const newMarker = new mapboxgl.Marker(el, {
+        offset: [0, -20],
+      })
+        .setLngLat({
+          lat: geo.latitude,
+          lng: geo.longitude,
+        })
+        .addTo(this.map);
+      this.markerMap.set(datas.id, newMarker);
+    } else {
+      //worker
+      console.log(this.forgeController.objects);
+      const worker = this.forgeController.getObject(datas.id);
+      worker.setPlacementTransform(
+        new THREE.Matrix4().setPosition({
+          x: datas.position[0],
+          y: datas.position[1],
+          z: datas.position[2],
+        })
+      );
+      const workerTag = this.beeController.objects[datas.id];
+      workerTag.matrix.setPosition(
+        new THREE.Vector3(
+          datas.position[0],
+          datas.position[1],
+          datas.position[2]
+        )
+      );
+      this.modelBuilder.updateMesh(workerTag);
+      this.markerMap.get(datas.id).setLngLat({
+        lat: geo.latitude,
+        lng: geo.longitude,
+      });
+    }
 
-    //   // this.forgeController.loadPlantModel(datas.idPlant, positionPlant);
-    // } else {
-    //   const worker = this.forgeController.getObject(datas.id);
-    //   console.log(worker);
-    //   worker.setPlacementTransform(
-    //     new THREE.Matrix4().setPosition({
-    //       x: datas.position[0],
-    //       y: datas.position[1],
-    //       z: datas.position[2],
-    //     })
-    //   );
-    //   const workerTag = this.beeController.objects[datas.id];
-    //   workerTag.matrix.setPosition(
-    //     new THREE.Vector3(
-    //       datas.position[0],
-    //       datas.position[1],
-    //       datas.position[2]
-    //     )
-    //   );
-    //   this.modelBuilder.updateMesh(workerTag);
-    //   // const plant = this.forgeController.getObject(datas.idPlant);
-    //   // plant.setPlacementTransform(
-    //   //   new THREE.Matrix4().setPosition({
-    //   //     x: positionPlant.x,
-    //   //     y: positionPlant.y,
-    //   //     z: 0,
-    //   //   })
-    //   // );
-    //   // this.markerMap.get(datas.id).setLngLat({
-    //   //   lat: geo.latitude,
-    //   //   lng: geo.longitude,
-    //   // });
-    // }
-  }
-  init(modelBuilder) {
-    console.log(modelBuilder);
+    if (
+      !forgeObject.has(datas.idPlant) &&
+      !this.markerMap.has(datas.idPlant) &&
+      this.modelBuilder
+    ) {
+      const pl = document.createElement("div");
+      pl.className = "plant plantMarker";
+      const plantMarker = new mapboxgl.Marker(pl, {
+        offset: [0, -20],
+      })
+        .setLngLat({
+          lat: datas.positionPlant[0],
+          lng: datas.positionPlant[1],
+        })
+        .addTo(this.map);
+      this.markerMap.set(datas.idPlant, plantMarker);
+
+      this.forgeController.loadPlantModel(datas.idPlant, positionPlant);
+      this.beeController.addPlantId(
+        this.modelBuilder,
+        datas.idPlant,
+        positionPlant
+      );
+    } else {
+      this.markerMap.get(datas.idPlant).setLngLat({
+        lat: datas.positionPlant[0],
+        lng: datas.positionPlant[1],
+      });
+      const plant = this.forgeController.getObject(datas.idPlant);
+      plant.setPlacementTransform(
+        new THREE.Matrix4().setPosition({
+          x: positionPlant.x,
+          y: positionPlant.y,
+          z: 0,
+        })
+      );
+      const plantTag = this.beeController.objects[datas.idPlant];
+      plantTag.matrix.setPosition(
+        new THREE.Vector3(positionPlant.x, positionPlant.y, 0)
+      );
+      this.modelBuilder.updateMesh(plantTag);
+    }
   }
 }

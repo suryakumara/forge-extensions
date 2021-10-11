@@ -5,12 +5,14 @@ export class BeeInventorModel {
     this.position = null;
     this.workerId = null;
     this.workerTagId = null;
+    this.plantTagId = null;
     this.model = null;
     this.humanModel = null;
     this.restrictedArea = null;
     this.beacon = null;
     this.excavator = null;
     this.objects = {};
+    this.globalMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
   }
 
   addWorker(modelBuilder, dbId, x = 0, y = 0, z = 3) {
@@ -57,73 +59,77 @@ export class BeeInventorModel {
     modelBuilder.addMesh(this.humanModel);
   }
 
-  addPlantTag(modelBuilder, dbId, position) {
+  addPlantId = (modelBuilder, dbId, position) => {
     const sphere = new THREE.SphereGeometry(0.3, 32, 16);
-    const globalMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-    const textGeometry = new THREE.TextGeometry(`${dbId}`, {
+
+    const textGeometry = new THREE.TextGeometry(`Plant: ${dbId}`, {
       font: "monaco",
       size: 1,
       height: 0,
       curveSegments: 3,
     });
-    const textMesh = new THREE.Mesh(textGeometry, globalMaterial);
-    const beaconMesh = new THREE.Mesh(sphere, globalMaterial);
-    textMesh.matrix.setPosition(new THREE.Vector3(0, 0.5, 0));
+    const textMesh = new THREE.Mesh(textGeometry, this.globalMaterial);
+
+    textMesh.matrix.makeRotationX(-4.7);
+    textMesh.matrix.setPosition(new THREE.Vector3(0, 0, 5.3));
     textMesh.matrix.scale(new THREE.Vector3(0.2, 0.2, 0.2));
-    let beaconGeo = new THREE.Geometry();
-    beaconGeo.merge(textMesh.geometry, textMesh.matrix);
-    beaconGeo.merge(beaconMesh.geometry, beaconMesh.matrix);
-    beaconGeo.computeVertexNormals();
 
-    const beaconBuffer = new THREE.BufferGeometry().fromGeometry(beaconGeo);
-    this.beacon = new THREE.Mesh(beaconBuffer, globalMaterial);
-    this.beacon.matrix.setPosition(
-      new THREE.Vector3(position[0], position[1], position[2])
+    const plantTagMesh = new THREE.Mesh(sphere, this.globalMaterial);
+    plantTagMesh.matrix.setPosition(new THREE.Vector3(0, 0, 5));
+    plantTagMesh.matrix.scale(new THREE.Vector3(0.2, 0.2, 0.2));
+
+    let plantTag = new THREE.Geometry();
+    plantTag.merge(textMesh.geometry, textMesh.matrix);
+    plantTag.merge(plantTagMesh.geometry, plantTagMesh.matrix);
+    plantTag.computeVertexNormals();
+
+    const plantTagBuffer = new THREE.BufferGeometry().fromGeometry(plantTag);
+    this.plantTagId = new THREE.Mesh(plantTagBuffer, this.globalMaterial);
+    console.log(position.x, position.y);
+    this.plantTagId.matrix.setPosition(
+      new THREE.Vector3(position.x, position.y, 0)
     );
+    this.plantTagId.userData.id = dbId;
+    this.objects[this.plantTagId.userData.id] = this.plantTagId;
 
-    // Add to object userData
-    this.beacon.userData.id = dbId;
-    this.objects[this.beacon.userData.id] = this.beacon;
+    this.plantTagId.dbId = dbId;
+    modelBuilder.addMesh(this.plantTagId);
+  };
 
-    this.beacon.dbId = dbId;
-    modelBuilder.addMesh(this.beacon);
-  }
-
-  addWorkerTag(modelBuilder, dbId, position) {
-    let modelGeometry = new THREE.Geometry();
-    const globalMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-    const sphere = new THREE.SphereGeometry(0.4, 32, 16);
-    const textGeometry = new THREE.TextGeometry(`Worker:${dbId}`, {
+  addWorkerId = (modelBuilder, dbId, position) => {
+    const sphere = new THREE.SphereGeometry(0.3, 32, 16);
+    const textGeometry = new THREE.TextGeometry(`Id: ${dbId}`, {
       font: "monaco",
       size: 1,
       height: 0,
       curveSegments: 3,
     });
-    textGeometry.computeBoundingBox();
-    const workerTagMesh = new THREE.Mesh(textGeometry, globalMaterial);
-    workerTagMesh.matrix.makeRotationX(-4.7);
-    workerTagMesh.matrix.setPosition(new THREE.Vector3(0, 0, 2.8));
-    workerTagMesh.matrix.scale(new THREE.Vector3(0.2, 0.2, 0.2));
+    const textMesh = new THREE.Mesh(textGeometry, this.globalMaterial);
 
-    const sphereMesh = new THREE.Mesh(sphere, globalMaterial);
+    textMesh.matrix.makeRotationX(-4.7);
+    textMesh.matrix.setPosition(new THREE.Vector3(0, 0, 2.8));
+    textMesh.matrix.scale(new THREE.Vector3(0.2, 0.2, 0.2));
 
-    sphereMesh.matrix.setPosition(new THREE.Vector3(0, 0, 2.5));
-    sphereMesh.matrix.scale(new THREE.Vector3(0.2, 0.2, 0.2));
-    modelGeometry.merge(sphereMesh.geometry, sphereMesh.matrix);
-    modelGeometry.merge(workerTagMesh.geometry, workerTagMesh.matrix);
-    modelGeometry.computeVertexNormals();
-    const workerTagBuffer = new THREE.BufferGeometry().fromGeometry(
-      modelGeometry
-    );
-    this.workerTagId = new THREE.Mesh(workerTagBuffer, globalMaterial);
+    const plantTagMesh = new THREE.Mesh(sphere, this.globalMaterial);
+    plantTagMesh.matrix.setPosition(new THREE.Vector3(0, 0, 2.5));
+    plantTagMesh.matrix.scale(new THREE.Vector3(0.2, 0.2, 0.2));
+
+    let workerTag = new THREE.Geometry();
+    workerTag.merge(textMesh.geometry, textMesh.matrix);
+    workerTag.merge(plantTagMesh.geometry, plantTagMesh.matrix);
+    workerTag.computeVertexNormals();
+
+    const plantTagBuffer = new THREE.BufferGeometry().fromGeometry(workerTag);
+    this.workerTagId = new THREE.Mesh(plantTagBuffer, this.globalMaterial);
     this.workerTagId.matrix.setPosition(
       new THREE.Vector3(position[0], position[1], position[2])
     );
+
     this.workerTagId.userData.id = dbId;
     this.objects[this.workerTagId.userData.id] = this.workerTagId;
     this.workerTagId.dbId = dbId;
     modelBuilder.addMesh(this.workerTagId);
-  }
+  };
 
   addNewWorker(modelBuilder, dbId, x = 0, y = 0, z = 1) {
     let modelGeometry = new THREE.Geometry();
