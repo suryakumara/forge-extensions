@@ -78,6 +78,7 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
 
     this.datas = null;
     this.getDataUWB();
+    this.updateBuilding();
   }
 
   getDataUWB() {
@@ -124,7 +125,6 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
         .addTo(this.map);
       this.markerMap.set(datas.id, newMarker);
     } else {
-      //worker
       console.log(this.forgeController.objects);
       const worker = this.forgeController.getObject(datas.id);
       worker.setPlacementTransform(
@@ -191,5 +191,41 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       );
       this.modelBuilder.updateMesh(plantTag);
     }
+  }
+
+  updateBuilding() {
+    const form = document.createElement("form");
+    form.setAttribute("id", "myform");
+    const inputPosX = document.createElement("input");
+    const inputPosY = document.createElement("input");
+    const inputPosZ = document.createElement("input");
+    const angle = document.createElement("input");
+    inputPosX.setAttribute("name", "x");
+    inputPosY.setAttribute("name", "y");
+    inputPosZ.setAttribute("name", "z");
+    angle.setAttribute("name", "angle");
+    const submit = document.createElement("input");
+    submit.setAttribute("type", "submit");
+    submit.innerText = "submit_position";
+    form.append(inputPosX, inputPosY, inputPosZ, angle, submit);
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      this.valueX = parseInt(form.elements.namedItem("x").value);
+      this.valueY = parseInt(form.elements.namedItem("y").value);
+      this.valueZ = parseInt(form.elements.namedItem("z").value);
+      this.angle = parseInt(form.elements.namedItem("angle").value);
+
+      this.viewer.model.setPlacementTransform(
+        new THREE.Matrix4().setPosition({
+          x: this.valueX,
+          y: this.valueY,
+          z: this.valueZ,
+        })
+      );
+      this.viewer.model.setPlacementTransform(
+        new THREE.Matrix4().makeRotationZ(this.angle)
+      );
+    });
+    this.container.append(form);
   }
 }
