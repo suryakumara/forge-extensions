@@ -90,7 +90,7 @@ export class CoordinateConverter {
     return { latitude: lat, longitude: lng };
   };
 
-  calculateUWBPosition(d, directionDegree, degreeAOA, deviceX, deviceY) {
+  calculateUWBPosition(d, degreeAOA, directionDegree, deviceX, deviceY) {
     const r = d / 100;
     const radian = ((-degreeAOA + directionDegree) * Math.PI) / 180;
     let newX = r * Math.cos(radian);

@@ -14,6 +14,7 @@ export class ForgeController {
   }
 
   async loadWorkerModel(id, position) {
+    console.log(position);
     await this.viewer.loadModel(
       `${CDN_DOMAIN}/assets/models/human.gltf`,
       {},
@@ -22,7 +23,7 @@ export class ForgeController {
           new THREE.Matrix4().setPosition({
             x: position[0],
             y: position[1],
-            z: position[2],
+            z: position[2] ?? 0,
           })
         );
         this.objects.set(id, human);

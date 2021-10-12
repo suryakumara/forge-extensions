@@ -5,20 +5,143 @@
   background-position: center;
 }
 
-.button-bee {
-  box-sizing: border-box;
-  cursor: pointer;
-  height: 40px;
-  margin: 5px;
+.containerBuilding {
+  padding: 0.2rem;
+  background-color: #31b35e;
 }
-.button-bee:hover {
-  background-color: #232323;
+
+.containerUWB {
+  margin-top: 3rem;
+  padding: 0.2rem;
+  background-color: #f04136;
 }
 
 #myform {
   display: flex;
-  width: 200px;
-  flex-direction: column;
+  width: auto;
+  height: 4rem;
+  flex-wrap: wrap;
+  background-color: #232323;
+  align-items: center;
+  margin-top: 0.1rem;
+  padding: 0 5px;
+}
+
+.title-position {
+  width: 10rem;
+}
+
+.containerInput {
+  flex-grow: 3;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+#myform label {
+  margin: 0 3px;
+  font-size: small;
+}
+
+.input-position {
+  width: 4rem;
+  height: 1rem;
+}
+
+.submit-position {
+  height: 1rem;
+  margin-left: auto;
+  font-size: small;
+}
+
+#myformRotation {
+  display: flex;
+  flex-wrap: wrap;
+  width: auto;
+  height: 4rem;
+  background-color: #232323;
+  margin-top: 0.1rem;
+  align-items: center;
+  padding: 0 5px;
+}
+
+.title-rotation {
+  width: 10rem;
+}
+
+.containerRotation {
+  flex-grow: 3;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+#myformRotation label {
+  margin: 0 3px;
+  font-size: small;
+}
+
+.input-rotation {
+  width: 4rem;
+  height: 1rem;
+}
+
+.submit-rotation {
+  height: 1rem;
+  margin-left: auto;
+  font-size: small;
+}
+
+.button-bee {
+  box-sizing: border-box;
+  background-color: #232323;
+  cursor: pointer;
+  height: 4rem;
+  font-size: small;
+  line-height: 4rem;
+  vertical-align: middle;
+  margin-top: 0.1rem;
+  padding: 0 5px;
+}
+.button-bee:hover {
+  background-color: #000000;
+}
+/* UWB */
+#uwb-form {
+  display: flex;
+  width: auto;
+  height: 4rem;
+  flex-wrap: wrap;
+  background-color: #232323;
+  align-items: center;
+  padding: 0 5px;
+}
+
+.uwb-title-position {
+  width: 10rem;
+}
+
+.uwbcontainerInput {
+  flex-grow: 3;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+#uwb-form label {
+  margin: 0 3px;
+  font-size: small;
+}
+
+.uwb-input-position {
+  width: 4rem;
+  height: 1rem;
+}
+
+.uwb-submit-position {
+  height: 1rem;
+  margin-left: auto;
+  font-size: small;
 }
 
 #map {

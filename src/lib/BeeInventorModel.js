@@ -6,6 +6,7 @@ export class BeeInventorModel {
     this.workerId = null;
     this.workerTagId = null;
     this.plantTagId = null;
+    this.uwb = null;
     this.model = null;
     this.humanModel = null;
     this.restrictedArea = null;
@@ -122,7 +123,7 @@ export class BeeInventorModel {
     const plantTagBuffer = new THREE.BufferGeometry().fromGeometry(workerTag);
     this.workerTagId = new THREE.Mesh(plantTagBuffer, this.globalMaterial);
     this.workerTagId.matrix.setPosition(
-      new THREE.Vector3(position[0], position[1], position[2])
+      new THREE.Vector3(position[0], position[1], position[2] ?? 0)
     );
 
     this.workerTagId.userData.id = dbId;
@@ -130,6 +131,41 @@ export class BeeInventorModel {
     this.workerTagId.dbId = dbId;
     modelBuilder.addMesh(this.workerTagId);
   };
+
+  addUWB(modelBuilder, dbId, position) {
+    console.log(modelBuilder);
+    const sphere = new THREE.SphereGeometry(0.3, 32, 16);
+    const globalMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const textGeometry = new THREE.TextGeometry(`${dbId}`, {
+      font: "monaco",
+      size: 1,
+      height: 0,
+      curveSegments: 3,
+    });
+    const textMesh = new THREE.Mesh(textGeometry, globalMaterial);
+    textMesh.matrix.makeRotationX(-4.7);
+    textMesh.matrix.setPosition(new THREE.Vector3(0, 0, 0.7));
+    textMesh.matrix.scale(new THREE.Vector3(0.2, 0.2, 0.2));
+
+    const uwbMesh = new THREE.Mesh(sphere, globalMaterial);
+    uwbMesh.matrix.scale(new THREE.Vector3(0.5, 0.5, 0.5));
+
+    let uwbGeo = new THREE.Geometry();
+    uwbGeo.merge(textMesh.geometry, textMesh.matrix);
+    uwbGeo.merge(uwbMesh.geometry, uwbMesh.matrix);
+    uwbGeo.computeVertexNormals();
+
+    const uwbBuff = new THREE.BufferGeometry().fromGeometry(uwbGeo);
+    this.uwb = new THREE.Mesh(uwbBuff, globalMaterial);
+    this.uwb.matrix.setPosition(new THREE.Vector3(position[0], position[1], 2));
+
+    // Add to object userData
+    this.uwb.userData.id = dbId;
+    this.objects[this.uwb.userData.id] = this.uwb;
+
+    this.uwb.dbId = dbId;
+    modelBuilder.addMesh(this.uwb);
+  }
 
   addNewWorker(modelBuilder, dbId, x = 0, y = 0, z = 1) {
     let modelGeometry = new THREE.Geometry();

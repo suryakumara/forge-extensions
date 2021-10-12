@@ -11,10 +11,18 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.container.classList.add("docking-panel-container-solid-color-a");
     this.container.style.top = "10px";
     this.container.style.left = "10px";
-    this.container.style.width = "320px";
+    this.container.style.width = "380px";
     this.container.style.padding = "10px";
-    this.container.style.height = "700px";
+    this.container.style.height = "500px";
     this.container.style.resize = "auto";
+
+    this.containerBuilding = document.createElement("div");
+    this.containerBuilding.className = "containerBuilding";
+    this.container.append(this.containerBuilding);
+
+    this.containerUWB = document.createElement("div");
+    this.containerUWB.className = "containerUWB";
+    this.container.append(this.containerUWB);
 
     this.sceneBuilder = null;
     this.modelBuilder = null;
@@ -32,6 +40,12 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       },
     ];
 
+    this.aoa = {
+      id: "001",
+      position: [4, -5, 0],
+      rotation: [0, 135, 0],
+    };
+
     // modelBuilder for custom Autodesk Forge
     this.viewer
       .loadExtension("Autodesk.Viewing.SceneBuilder")
@@ -44,6 +58,7 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       })
       .then((builder) => {
         this.modelBuilder = builder;
+        this.init(this.modelBuilder, this.aoa);
         console.log("modelBuilder Created.");
       });
 
@@ -78,7 +93,14 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
 
     this.datas = null;
     this.getDataUWB();
-    this.updateBuilding();
+    this.updateBuildingPosition();
+    this.updateBuildingRotation();
+    this.setVisibility();
+    this.updateUWBPosition();
+  }
+
+  init(modelBuilder, AOA) {
+    this.beeController.addUWB(modelBuilder, AOA.id, AOA.position);
   }
 
   getDataUWB() {
@@ -87,9 +109,48 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
         .then((res) => res.json())
         .then((res) => {
           this.getDatas(res);
+          this.getDatasUWB(res);
         })
         .catch((err) => console.log(err));
-    }, 3000);
+    }, 2000);
+  }
+
+  getDatasUWB(datas) {
+    const datasAOA = datas;
+
+    const coordAOA = this.coordinateConverter.calculateUWBPosition(
+      datasAOA.distance,
+      datasAOA.degree,
+      this.aoa.rotation[1],
+      this.aoa.position[0],
+      this.aoa.position[1]
+    );
+    console.log(coordAOA);
+    const aoa = this.beeController.objects[this.aoa.id];
+    const forgeObject = this.forgeController.objects;
+    if (
+      aoa &&
+      !forgeObject.has(datasAOA.tagId) &&
+      !this.markerMap.has(datasAOA.tagId)
+    ) {
+      this.forgeController.loadWorkerModel(datasAOA.tagId, coordAOA);
+      this.beeController.addWorkerId(this.modelBuilder, datas.tagId, coordAOA);
+    } else {
+      const worker = this.forgeController.getObject(datas.tagId);
+      worker.setPlacementTransform(
+        new THREE.Matrix4().setPosition({
+          x: coordAOA[0],
+          y: coordAOA[1],
+          z: coordAOA[2] ?? 0,
+        })
+      );
+      const workerTag = this.beeController.objects[datas.tagId];
+      console.log(workerTag);
+      workerTag.matrix.setPosition(
+        new THREE.Vector3(coordAOA[0], coordAOA[1], coordAOA[2] ?? 0)
+      );
+      this.modelBuilder.updateMesh(workerTag);
+    }
   }
 
   getDatas(datas) {
@@ -125,7 +186,6 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
         .addTo(this.map);
       this.markerMap.set(datas.id, newMarker);
     } else {
-      console.log(this.forgeController.objects);
       const worker = this.forgeController.getObject(datas.id);
       worker.setPlacementTransform(
         new THREE.Matrix4().setPosition({
@@ -192,40 +252,242 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       this.modelBuilder.updateMesh(plantTag);
     }
   }
+  setAttributes(el, attrs) {
+    for (let key in attrs) {
+      el.setAttribute(key, attrs[key]);
+    }
+  }
 
-  updateBuilding() {
+  updateBuildingPosition() {
     const form = document.createElement("form");
     form.setAttribute("id", "myform");
+    const containerInput = document.createElement("div");
+    containerInput.className = "containerInput";
+
     const inputPosX = document.createElement("input");
     const inputPosY = document.createElement("input");
     const inputPosZ = document.createElement("input");
-    const angle = document.createElement("input");
-    inputPosX.setAttribute("name", "x");
-    inputPosY.setAttribute("name", "y");
-    inputPosZ.setAttribute("name", "z");
-    angle.setAttribute("name", "angle");
+    const labelX = document.createElement("label");
+    const labelY = document.createElement("label");
+    const labelZ = document.createElement("label");
+    const title = document.createElement("h6");
+    title.innerText = "Position";
+    title.className = "title-position";
+    this.setAttributes(labelX, { for: "x" });
+    labelX.innerText = "x";
+    this.setAttributes(labelY, { for: "y" });
+    labelY.innerText = "y";
+    this.setAttributes(labelZ, { for: "z" });
+    labelZ.innerText = "z";
+
+    this.setAttributes(inputPosX, {
+      name: "x",
+      id: "x",
+      type: "number",
+      value: 0,
+      class: "input-position",
+    });
+    this.setAttributes(inputPosY, {
+      name: "y",
+      id: "y",
+      type: "number",
+      value: 0,
+      class: "input-position",
+    });
+    this.setAttributes(inputPosZ, {
+      name: "z",
+      id: "z",
+      type: "number",
+      value: 0,
+      class: "input-position",
+    });
     const submit = document.createElement("input");
-    submit.setAttribute("type", "submit");
-    submit.innerText = "submit_position";
-    form.append(inputPosX, inputPosY, inputPosZ, angle, submit);
+    this.setAttributes(submit, {
+      type: "submit",
+      class: "submit-position",
+    });
+    submit.innerText = "Submit";
+    containerInput.append(
+      inputPosX,
+      labelX,
+      inputPosY,
+      labelY,
+      inputPosZ,
+      labelZ,
+      submit
+    );
+    form.append(title, containerInput);
     form.addEventListener("submit", (e) => {
       e.preventDefault();
-      this.valueX = parseInt(form.elements.namedItem("x").value);
-      this.valueY = parseInt(form.elements.namedItem("y").value);
-      this.valueZ = parseInt(form.elements.namedItem("z").value);
-      this.angle = parseInt(form.elements.namedItem("angle").value);
-
-      this.viewer.model.setPlacementTransform(
-        new THREE.Matrix4().setPosition({
-          x: this.valueX,
-          y: this.valueY,
-          z: this.valueZ,
-        })
-      );
-      this.viewer.model.setPlacementTransform(
-        new THREE.Matrix4().makeRotationZ(this.angle)
-      );
+      this.valueX = form.elements.namedItem("x").value;
+      this.valueY = form.elements.namedItem("y").value;
+      this.valueZ = form.elements.namedItem("z").value;
+      if (
+        !isNaN(this.valueX) &&
+        this.valueX !== "" &&
+        this.valueX !== undefined &&
+        !isNaN(this.valueY) &&
+        this.valueY !== "" &&
+        this.valueY !== undefined &&
+        !isNaN(this.valueZ) &&
+        this.valueZ !== "" &&
+        this.valueZ !== undefined
+      ) {
+        this.viewer.model.setPlacementTransform(
+          new THREE.Matrix4().setPosition({
+            x: this.valueX,
+            y: this.valueY,
+            z: this.valueZ,
+          })
+        );
+      }
     });
-    this.container.append(form);
+    this.containerBuilding.append(form);
+  }
+
+  updateBuildingRotation() {
+    const formRotation = document.createElement("form");
+    formRotation.setAttribute("id", "myformRotation");
+    const containerRotation = document.createElement("div");
+    containerRotation.className = "containerRotation";
+    const inputAngle = document.createElement("input");
+    const labelAngle = document.createElement("label");
+    const titleAngle = document.createElement("h6");
+    titleAngle.innerText = "Rotation";
+    titleAngle.className = "title-rotation";
+    this.setAttributes(labelAngle, { for: "angle" });
+    labelAngle.innerText = "angle";
+    this.setAttributes(inputAngle, {
+      name: "angle",
+      id: "angle",
+      type: "number",
+      value: 0,
+      class: "input-rotation",
+    });
+    const submitAngle = document.createElement("input");
+    this.setAttributes(submitAngle, {
+      type: "submit",
+      class: "submit-rotation",
+    });
+    submitAngle.innerText = "Submit";
+    containerRotation.append(inputAngle, labelAngle, submitAngle);
+    formRotation.append(titleAngle, containerRotation);
+    formRotation.addEventListener("submit", (e) => {
+      e.preventDefault();
+      this.angleRotation = formRotation.elements.namedItem("angle").value;
+      if (
+        !isNaN(this.angleRotation) &&
+        this.angleRotation !== "" &&
+        this.angleRotation !== undefined
+      ) {
+        const angleRadian = CoordinateConverter.degreeToRadian(
+          this.angleRotation
+        );
+        this.viewer.model.setPlacementTransform(
+          new THREE.Matrix4().makeRotationZ(angleRadian)
+        );
+      }
+    });
+    this.containerBuilding.append(formRotation);
+  }
+
+  updateUWBPosition() {
+    const form = document.createElement("form");
+    form.setAttribute("id", "uwb-form");
+    const containerInput = document.createElement("div");
+    containerInput.className = "uwbcontainerInput";
+
+    const inputPosX = document.createElement("input");
+    const inputPosY = document.createElement("input");
+    const inputPosZ = document.createElement("input");
+    const labelX = document.createElement("label");
+    const labelY = document.createElement("label");
+    const labelZ = document.createElement("label");
+    const title = document.createElement("h6");
+    title.innerText = "Position";
+    title.className = "uwb-title-position";
+    this.setAttributes(labelX, { for: "x" });
+    labelX.innerText = "x";
+    this.setAttributes(labelY, { for: "y" });
+    labelY.innerText = "y";
+    this.setAttributes(labelZ, { for: "z" });
+    labelZ.innerText = "z";
+
+    this.setAttributes(inputPosX, {
+      name: "x",
+      id: "x",
+      type: "number",
+      value: 0,
+      class: "uwb-input-position",
+    });
+    this.setAttributes(inputPosY, {
+      name: "y",
+      id: "y",
+      type: "number",
+      value: 0,
+      class: "uwb-input-position",
+    });
+    this.setAttributes(inputPosZ, {
+      name: "z",
+      id: "z",
+      type: "number",
+      value: 0,
+      class: "uwb-input-position",
+    });
+    const submit = document.createElement("input");
+    this.setAttributes(submit, {
+      type: "submit",
+      class: "uwb-submit-position",
+    });
+    submit.innerText = "Submit";
+    containerInput.append(
+      inputPosX,
+      labelX,
+      inputPosY,
+      labelY,
+      inputPosZ,
+      labelZ,
+      submit
+    );
+    form.append(title, containerInput);
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      this.valueUWB_X = form.elements.namedItem("x").value;
+      this.valueUWB_Y = form.elements.namedItem("y").value;
+      this.valueUWB_Z = form.elements.namedItem("z").value;
+      if (
+        !isNaN(this.valueUWB_X) &&
+        this.valueUWB_X !== "" &&
+        this.valueUWB_X !== undefined &&
+        !isNaN(this.valueUWB_Y) &&
+        this.valueUWB_Y !== "" &&
+        this.valueUWB_Y !== undefined &&
+        !isNaN(this.valueUWB_Z) &&
+        this.valueUWB_Z !== "" &&
+        this.valueUWB_Z !== undefined
+      ) {
+        alert(this.valueUWB_X, this.valueUWB_Y, this.valueUWB_Z);
+      }
+    });
+    this.containerUWB.append(form);
+  }
+
+  setVisibility() {
+    const buttonVisibility = document.createElement("div");
+    buttonVisibility.innerText = "Show/Hide Building";
+    buttonVisibility.classList.add("button-bee");
+    buttonVisibility.addEventListener("click", async () => {
+      this.enabled = !this.enabled;
+      if (this.enabled) {
+        const instanceTree = this.viewer.model.getData().instanceTree;
+        const rootId = instanceTree.getRootId();
+        this.viewer.hide(rootId);
+      } else {
+        const instanceTree = this.viewer.model.getData().instanceTree;
+        const rootId = instanceTree.getRootId();
+        this.viewer.show(rootId);
+      }
+    });
+    this.containerBuilding.append(buttonVisibility);
   }
 }
