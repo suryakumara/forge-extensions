@@ -16,6 +16,11 @@ export class BeeInventorModel {
     this.globalMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
   }
 
+  idToNumber(id) {
+    const numberId = parseInt(id.replace(/[^0-9]/g, ""));
+    return numberId;
+  }
+
   addWorker(modelBuilder, dbId, x = 0, y = 0, z = 3) {
     let modelGeometry = new THREE.Geometry();
     const globalMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
@@ -28,7 +33,7 @@ export class BeeInventorModel {
       side: THREE.DoubleSide,
     });
     const planeGeometry = new THREE.PlaneGeometry(1, 1);
-    const textGeometry = new THREE.TextGeometry(`${dbId}`, {
+    const textGeometry = new THREE.TextGeometry(`Worker${dbId}`, {
       font: "monaco",
       size: 1,
       height: 0,
@@ -86,20 +91,21 @@ export class BeeInventorModel {
 
     const plantTagBuffer = new THREE.BufferGeometry().fromGeometry(plantTag);
     this.plantTagId = new THREE.Mesh(plantTagBuffer, this.globalMaterial);
-    console.log(position.x, position.y);
     this.plantTagId.matrix.setPosition(
       new THREE.Vector3(position.x, position.y, 0)
     );
+
     this.plantTagId.userData.id = dbId;
     this.objects[this.plantTagId.userData.id] = this.plantTagId;
-
-    this.plantTagId.dbId = dbId;
+    const plantDBID = this.idToNumber(dbId);
+    this.plantTagId.dbId = plantDBID;
     modelBuilder.addMesh(this.plantTagId);
   };
 
   addWorkerId = (modelBuilder, dbId, position) => {
+    const workerTagDbId = dbId;
     const sphere = new THREE.SphereGeometry(0.3, 32, 16);
-    const textGeometry = new THREE.TextGeometry(`Id: ${dbId}`, {
+    const textGeometry = new THREE.TextGeometry(`Id: ${workerTagDbId}`, {
       font: "monaco",
       size: 1,
       height: 0,
@@ -126,15 +132,14 @@ export class BeeInventorModel {
       new THREE.Vector3(position[0], position[1], position[2] ?? 0)
     );
 
-    this.workerTagId.userData.id = dbId;
+    this.workerTagId.userData.id = workerTagDbId;
     this.objects[this.workerTagId.userData.id] = this.workerTagId;
-    this.workerTagId.dbId = dbId;
+    this.workerTagId.dbId = workerTagDbId;
     modelBuilder.addMesh(this.workerTagId);
   };
 
   addUWB(modelBuilder, dbId, position) {
-    console.log(modelBuilder);
-    const sphere = new THREE.SphereGeometry(0.3, 32, 16);
+    const box = new THREE.BoxGeometry(1, 0.5, 1);
     const globalMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
     const textGeometry = new THREE.TextGeometry(`${dbId}`, {
       font: "monaco",
@@ -147,7 +152,7 @@ export class BeeInventorModel {
     textMesh.matrix.setPosition(new THREE.Vector3(0, 0, 0.7));
     textMesh.matrix.scale(new THREE.Vector3(0.2, 0.2, 0.2));
 
-    const uwbMesh = new THREE.Mesh(sphere, globalMaterial);
+    const uwbMesh = new THREE.Mesh(box, globalMaterial);
     uwbMesh.matrix.scale(new THREE.Vector3(0.5, 0.5, 0.5));
 
     let uwbGeo = new THREE.Geometry();
@@ -157,13 +162,20 @@ export class BeeInventorModel {
 
     const uwbBuff = new THREE.BufferGeometry().fromGeometry(uwbGeo);
     this.uwb = new THREE.Mesh(uwbBuff, globalMaterial);
-    this.uwb.matrix.setPosition(new THREE.Vector3(position[0], position[1], 2));
+    // this.uwb.matrix.setPosition(
+    //   new THREE.Vector3(position[0], position[1], position[2])
+    // );
+    this.uwb.matrix = new THREE.Matrix4().compose(
+      new THREE.Vector3(position[0], position[1], position[2]),
+      new THREE.Quaternion(0, 0, 0, 1),
+      new THREE.Vector3(1, 1, 1)
+    );
 
     // Add to object userData
     this.uwb.userData.id = dbId;
     this.objects[this.uwb.userData.id] = this.uwb;
-
-    this.uwb.dbId = dbId;
+    const uwbDBID = this.idToNumber(dbId);
+    this.uwb.dbId = uwbDBID;
     modelBuilder.addMesh(this.uwb);
   }
 
@@ -347,5 +359,11 @@ export class BeeInventorModel {
       this.viewer.getCamera().clone().quaternion
     );
     modelBuilder.updateMesh(this.objects[dbId]);
+  }
+
+  destroy(modelBuilder) {
+    for (const property in this.objects) {
+      modelBuilder.removeMesh(this.objects[property]);
+    }
   }
 }

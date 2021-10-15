@@ -1,4 +1,6 @@
 export class ForgeController {
+  objects;
+
   constructor(viewer, options) {
     this.viewer = viewer;
     this.objects = new Map();
@@ -14,7 +16,6 @@ export class ForgeController {
   }
 
   async loadWorkerModel(id, position) {
-    console.log(position);
     await this.viewer.loadModel(
       `${CDN_DOMAIN}/assets/models/human.gltf`,
       {},
@@ -26,6 +27,7 @@ export class ForgeController {
             z: position[2] ?? 0,
           })
         );
+        human.dbId = id;
         this.objects.set(id, human);
       }
     );
@@ -49,7 +51,11 @@ export class ForgeController {
   }
 
   destroy() {
+    if (this.objects) {
+      this.objects.forEach((value, key) => {
+        this.viewer.unloadModel(value);
+      });
+    }
     this.objects.clear();
-    this.viewer.destroy();
   }
 }

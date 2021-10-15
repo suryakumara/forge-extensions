@@ -7,13 +7,13 @@
 
 .containerBuilding {
   padding: 0.2rem;
-  background-color: #31b35e;
+  border: 1px solid #31b35e;
 }
 
 .containerUWB {
-  margin-top: 3rem;
+  margin-top: 1rem;
   padding: 0.2rem;
-  background-color: #f04136;
+  border: 1px solid #f04136;
 }
 
 #myform {
@@ -152,6 +152,14 @@
   right: 0;
   width: 300px;
   height: 300px;
+}
+
+#infoPanel div {
+  background-color: #232323;
+  font-size: small;
+}
+#infoPanel div:first-child {
+  text-align: center;
 }
 
 .workerMarker {

@@ -11,10 +11,12 @@ class BeeInventor extends Autodesk.Viewing.Extension {
     this._group = null;
     this.panel = null;
     this.grid = null;
+    this.destroy = null;
   }
 
   load() {
     console.log("Docking Panel has been loaded !");
+
     this.grid = new THREE.GridHelper(50, 1);
     this.grid.material.opacity = 0.8;
     this.grid.material.transparent = true;
@@ -57,8 +59,10 @@ class BeeInventor extends Autodesk.Viewing.Extension {
           "BeeInventor Extension"
         );
       }
-
       this.panel.setVisible(!this.panel.isVisible());
+      if (!this.panel.isVisible()) {
+        this.panel.destroy();
+      }
     };
     this._button.setToolTip("BeeInventor IoT");
     this._button.addClass("dockingPanel");
