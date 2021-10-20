@@ -2,7 +2,6 @@
 import { BeeInventorModel } from "./BeeInventorModel";
 import { CoordinateConverter } from "./CoordinateConverter";
 import { ForgeController } from "./ForgeController";
-import { io } from "socket.io-client";
 
 export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
   constructor(viewer, container, id, title, options) {
@@ -14,7 +13,7 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.container.style.cssText = `
       top: 10px;
       left: 10px;
-      width: 380px;
+      width: auto;
       padding: 10px;
       height: 500px;
       resize: auto;
@@ -29,7 +28,7 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.containerInfo.style.cssText = `
     margin-top: 1rem;
     padding: 0 0.2rem;
-    border: 0.5px solid #f04136;
+    border: 0.5px solid #E5A600;
   `;
     this.container.append(this.containerInfo);
 
@@ -48,7 +47,7 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.started = false;
 
     this.aoa = {
-      id: "AB0014",
+      id: "4219",
       position: [4, -5, 2],
       rotation: [0, 135, 0],
     };
@@ -105,7 +104,8 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
 
     this.getDataUWB();
     this.updateBuildingPosition();
-    this.updateBuildingRotation();
+    this.updateLatLong();
+    // this.updateBuildingRotation();
     this.setVisibility();
     this.updateInfoObject();
     this.updateUWBPosition();
@@ -138,6 +138,9 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
         },
         true
       );
+      const test = this.beeController.objects[this.aoa.id];
+      // console.log(test);
+      // console.log(model);
 
       const position = bounds.getCenter();
       const positionGeo = this.coordinateConverter.cartesianToGeographic(
@@ -184,6 +187,52 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
 
   init(modelBuilder, AOA) {
     this.beeController.addUWB(modelBuilder, AOA.id, AOA.position, AOA.rotation);
+    this.worker1 = {
+      id: "AB00145",
+      position: [0, 20, 0],
+      rotation: [0, 135, 0],
+    };
+    this.beeController.addNewWorker(
+      modelBuilder,
+      this.worker1.id,
+      this.worker1.position,
+      this.worker1.rotation
+    );
+    const restricted = {
+      id: "AB14514223413",
+      position: [5, 20, 0],
+      rotation: [0, 0, 0],
+    };
+    this.beeController.addRestrictedArea(
+      modelBuilder,
+      restricted.id,
+      restricted.position,
+      restricted.rotation
+    );
+
+    const excavator1 = {
+      id: "EXC14514213",
+      position: [-5, 20, 0],
+      rotation: [0, 0, 0],
+    };
+    this.beeController.addExcavator(
+      modelBuilder,
+      excavator1.id,
+      excavator1.position,
+      excavator1.rotation
+    );
+
+    const beacon1 = {
+      id: "EXC145142135",
+      position: [-10, 20, 0],
+      rotation: [0, 0, 0],
+    };
+    this.beeController.addBeacon(
+      modelBuilder,
+      beacon1.id,
+      beacon1.position,
+      beacon1.rotation
+    );
   }
 
   getDataUWB() {
@@ -227,16 +276,17 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       this.beeController.addWorkerId(this.modelBuilder, datasAOA.id, coordAOA);
     } else {
       const worker = this.forgeController.getObject(datasAOA.id);
+
       worker.setPlacementTransform(
         new THREE.Matrix4().setPosition({
           x: coordAOA[0],
           y: coordAOA[1],
-          z: coordAOA[2] ?? 0,
+          z: positionAOA.z ?? 0,
         })
       );
       const workerTag = this.beeController.objects[datasAOA.id];
       workerTag.matrix.setPosition(
-        new THREE.Vector3(coordAOA[0], coordAOA[1], coordAOA[2] ?? 0)
+        new THREE.Vector3(coordAOA[0], coordAOA[1], positionAOA.z ?? 0)
       );
       this.modelBuilder.updateMesh(workerTag);
     }
@@ -273,6 +323,7 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
           lng: geo.longitude,
         })
         .addTo(this.map);
+
       this.markerMap.set(datas.id, newMarker);
     } else {
       const worker = this.forgeController.getObject(datas.id);
@@ -353,28 +404,31 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     const containerInput = document.createElement("div");
     containerInput.className = "containerInput";
     const title = document.createElement("div");
-    title.style.cssText = `
-      text-align: center;
-      font-size: small;
-      background-color: #232323;
-    `;
+    title.className = "title-form";
     title.innerText = "Building Setup";
-
     const inputPosX = document.createElement("input");
     const inputPosY = document.createElement("input");
     const inputPosZ = document.createElement("input");
+    const inputRotation = document.createElement("input");
+    const labelRotation = document.createElement("label");
     const labelX = document.createElement("label");
     const labelY = document.createElement("label");
     const labelZ = document.createElement("label");
-    const subTitlePosition = document.createElement("h6");
-    subTitlePosition.innerText = "Position";
-    subTitlePosition.className = "title-position";
     this.setAttributes(labelX, { for: "x" });
     labelX.innerText = "x";
     this.setAttributes(labelY, { for: "y" });
     labelY.innerText = "y";
     this.setAttributes(labelZ, { for: "z" });
     labelZ.innerText = "z";
+    this.setAttributes(inputRotation, { for: "angle" });
+    labelRotation.innerText = "d";
+    this.setAttributes(inputRotation, {
+      name: "angle",
+      id: "angle",
+      type: "number",
+      value: 0,
+      class: "input-rotation",
+    });
 
     this.setAttributes(inputPosX, {
       name: "x",
@@ -404,20 +458,23 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     });
     submit.innerText = "Submit";
     containerInput.append(
-      inputPosX,
       labelX,
-      inputPosY,
+      inputPosX,
       labelY,
-      inputPosZ,
+      inputPosY,
       labelZ,
-      submit
+      inputPosZ
     );
-    form.append(subTitlePosition, containerInput);
+    const angleSubmit = document.createElement("div");
+    angleSubmit.className = "submit-setup";
+    angleSubmit.append(labelRotation, inputRotation, submit);
+    form.append(containerInput, angleSubmit);
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       this.valueX = form.elements.namedItem("x").value;
       this.valueY = form.elements.namedItem("y").value;
       this.valueZ = form.elements.namedItem("z").value;
+      this.valueRot = form.elements.namedItem("angle").value;
       if (
         !isNaN(this.valueX) &&
         this.valueX !== "" &&
@@ -427,20 +484,23 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
         this.valueY !== undefined &&
         !isNaN(this.valueZ) &&
         this.valueZ !== "" &&
-        this.valueZ !== undefined
+        this.valueZ !== undefined &&
+        !isNaN(this.valueRot) &&
+        this.valueRot !== "" &&
+        this.valueRot !== undefined
       ) {
         this.translation = new THREE.Matrix4().makeTranslation(
           this.valueX,
           this.valueY,
           this.valueZ
         );
-        if (this.rotation) {
-          this.viewer.model.setPlacementTransform(
-            this.translation.multiply(this.rotation)
-          );
-        } else {
-          this.viewer.model.setPlacementTransform(this.translation);
-        }
+        const angleRadian = CoordinateConverter.degreeToRadian(this.valueRot);
+        let xform = new THREE.Matrix4();
+        let rotate = new THREE.Matrix4().makeRotationZ(angleRadian);
+        // let translation = new THREE.Matrix4().makeTranslation(0.1, 0.5, 0.1);
+        xform.multiply(rotate);
+        xform.multiply(this.translation);
+        this.viewer.model.setPlacementTransform(xform);
       }
     });
     this.containerBuilding.append(title);
@@ -455,6 +515,11 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     const inputAngle = document.createElement("input");
     const labelAngle = document.createElement("label");
     const titleAngle = document.createElement("h6");
+    const latLongCenter = document.createElement("div");
+    latLongCenter.classList.add("latlong-bee");
+
+    const position = this.coordinateConverter.getCenter();
+    latLongCenter.innerText = `Lat: ${position.latitude}, Long: ${position.longitude}`;
     titleAngle.innerText = "Rotation";
     titleAngle.className = "title-rotation";
     this.setAttributes(labelAngle, { for: "angle" });
@@ -497,6 +562,15 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       }
     });
     this.containerBuilding.append(formRotation);
+    this.containerBuilding.append(latLongCenter);
+  }
+
+  updateLatLong() {
+    const latLongCenter = document.createElement("div");
+    latLongCenter.classList.add("latlong-bee");
+    const position = this.coordinateConverter.getCenter();
+    latLongCenter.innerText = `Lat: ${position.latitude}, Long: ${position.longitude}`;
+    this.containerBuilding.append(latLongCenter);
   }
 
   updateUWBPosition() {
@@ -591,8 +665,6 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     buttonVisibility.classList.add("button-bee");
     buttonVisibility.addEventListener("click", async () => {
       this.enabled = !this.enabled;
-      this.started = !this.started;
-      if (this.started) this.rotateCamera();
       if (this.enabled) {
         const instanceTree = this.viewer.model.getData().instanceTree;
         const rootId = instanceTree.getRootId();
@@ -611,7 +683,7 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       requestAnimationFrame(this.rotateCamera);
     }
 
-    const nav = viewer.navigation;
+    const nav = this.viewer.navigation;
     const up = nav.getCameraUpVector();
     const axis = new THREE.Vector3(0, 0, 1);
     const speed = (10.0 * Math.PI) / 180;
@@ -623,7 +695,6 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     nav.setView(pos, new THREE.Vector3(0, 0, 0));
     nav.setCameraUpVector(up);
     let viewState = this.viewer.getState();
-    console.log(viewState);
   };
 
   destroy() {

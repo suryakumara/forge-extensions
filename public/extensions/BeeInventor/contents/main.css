@@ -16,33 +16,30 @@
 .containerUWB {
   margin-top: 1rem;
   padding: 0.2rem;
-  border: 1px solid #f04136;
+  border: 1px solid #e5a600;
 }
 
 #myform {
   display: flex;
   width: auto;
-  height: 4rem;
   flex-wrap: wrap;
   background-color: #232323;
-  align-items: center;
   margin-top: 0.1rem;
   padding: 0 5px;
 }
 
 .title-position {
-  width: 10rem;
+  width: 5rem;
 }
 
 .containerInput {
-  flex-grow: 3;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
 }
 
 #myform label {
-  margin: 0 3px;
+  margin: 0 1rem;
   font-size: small;
 }
 
@@ -52,9 +49,15 @@
 }
 
 .submit-position {
+  justify-self: end;
   height: 1rem;
-  margin-left: auto;
+  margin-left: 3rem;
   font-size: small;
+}
+.submit-setup {
+  width: auto;
+  display: flex;
+  align-items: center;
 }
 
 #myformRotation {
@@ -93,6 +96,30 @@
   height: 1rem;
   margin-left: auto;
   font-size: small;
+}
+
+.latlong-bee {
+  box-sizing: border-box;
+  background-color: #232323;
+  height: 4rem;
+  font-size: small;
+  line-height: 4rem;
+  vertical-align: middle;
+  margin-top: 0.1rem;
+  padding: 0 5px;
+}
+
+.title-form {
+  box-sizing: border-box;
+  background-color: #232323;
+  cursor: pointer;
+  height: 4rem;
+  font-size: small;
+  line-height: 4rem;
+  text-align: center;
+  vertical-align: middle;
+  margin-top: 0.1rem;
+  padding: 0 5px;
 }
 
 .button-bee {
@@ -151,7 +178,7 @@
   position: absolute;
   display: block;
   top: 10px;
-  z-index: 1;
+  z-index: -10;
   right: 0;
   width: 300px;
   height: 300px;
