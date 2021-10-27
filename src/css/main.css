@@ -109,7 +109,6 @@
 .title-form {
   box-sizing: border-box;
   background-color: #232323;
-  cursor: pointer;
   height: 4rem;
   font-size: small;
   line-height: 4rem;
@@ -130,6 +129,24 @@
   margin-top: 0.1rem;
   padding: 0 5px;
 }
+
+.create-aoa {
+  /* justify-self: end;
+  height: 1rem;
+  margin-left: 3rem;
+  font-size: small; */
+
+  box-sizing: border-box;
+  background-color: #fff;
+  color: #000000;
+  cursor: pointer;
+  height: 2rem;
+  font-size: small;
+  vertical-align: middle;
+  margin-top: 0.1rem;
+  padding: 0 5px;
+}
+
 .button-bee:hover {
   background-color: #000000;
 }
@@ -175,7 +192,7 @@
   position: absolute;
   display: block;
   top: 10px;
-  z-index: 1;
+  z-index: -10;
   right: 0;
   width: 300px;
   height: 300px;

@@ -8,6 +8,7 @@ export class BeeInventorModel {
     this.restrictedArea = null;
     this.beacon = null;
     this.excavator = null;
+    this.grid = null;
     this.objects = new Map();
   }
 
@@ -30,7 +31,8 @@ export class BeeInventorModel {
     const globalMaterial = new THREE.MeshBasicMaterial({
       color: new THREE.Color(1, 0, 0),
     });
-    const box = new THREE.BoxGeometry(1, 1, 1);
+    const cylinderGeometry = new THREE.CylinderGeometry(0.5, 0.5, 2.5, 32);
+    const box = new THREE.BoxGeometry(0.5, 1, 1);
     const textGeometry = new THREE.TextGeometry(`UWB${dbId}`, {
       font: "monaco",
       size: 1,
@@ -45,15 +47,21 @@ export class BeeInventorModel {
     const uwbMesh = new THREE.Mesh(box, globalMaterial);
     uwbMesh.matrix.scale(new THREE.Vector3(0.5, 0.5, 0.5));
 
+    const uwbDir = new THREE.Mesh(cylinderGeometry, globalMaterial);
+    const radians = 90 * (Math.PI / 180);
+    uwbDir.matrix.makeRotationZ(radians);
+    uwbDir.matrix.setPosition(new THREE.Vector3(0.2, 0, 0));
+    uwbDir.matrix.scale(new THREE.Vector3(0.2, 0.2, 0.2));
+
     let uwbGeo = new THREE.Geometry();
     uwbGeo.merge(textMesh.geometry, textMesh.matrix);
     uwbGeo.merge(uwbMesh.geometry, uwbMesh.matrix);
+    uwbGeo.merge(uwbDir.geometry, uwbDir.matrix);
     uwbGeo.computeVertexNormals();
 
     const uwbBuff = new THREE.BufferGeometry().fromGeometry(uwbGeo);
     this.uwb = new THREE.Mesh(uwbBuff, globalMaterial);
 
-    const radians = 135 * (180 / Math.PI);
     // this.uwb.matrix.makeRotationZ(radians);
     this.uwb.userData.id = dbId;
     const uwbDBID = this.idToNumber(dbId);
@@ -61,15 +69,15 @@ export class BeeInventorModel {
 
     modelBuilder.addMesh(this.uwb);
     const uwbModel = modelBuilder.model;
-    const xAxis = new THREE.Vector3(0, 0, 1);
-    const quaternion = new THREE.Quaternion().setFromAxisAngle(xAxis, radians);
-    uwbModel.setPlacementTransform(
-      new THREE.Matrix4().compose(
-        new THREE.Vector3(position[0] ?? 0, position[1] ?? 0, position[2] ?? 0),
-        quaternion,
-        new THREE.Vector3(1, 1, 1)
-      )
+
+    let pos = new THREE.Matrix4();
+    pos.makeRotationZ(rotation[1] ?? 0 * (Math.PI / 180));
+    pos.setPosition(
+      new THREE.Vector3(position[0] ?? 0, position[1] ?? 0, position[2] ?? 2)
     );
+
+    uwbModel.setPlacementTransform(pos);
+
     this.objects.set(dbId, uwbModel);
   };
 
@@ -118,6 +126,7 @@ export class BeeInventorModel {
     modelBuilder.addMesh(this.humanModel);
 
     const workerModel = modelBuilder.model;
+
     workerModel.setPlacementTransform(
       new THREE.Matrix4().compose(
         new THREE.Vector3(position[0] ?? 0, position[1] ?? 0, position[2] ?? 0),
@@ -197,6 +206,7 @@ export class BeeInventorModel {
       map: texture,
       side: THREE.DoubleSide,
     });
+
     const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
     const textGeometry = new THREE.TextGeometry(`${dbId}`, {
       font: "monaco",
@@ -289,6 +299,92 @@ export class BeeInventorModel {
     this.objects.set(dbId, beaconModel);
   };
 
+  addWindDirection = async (dbId) => {
+    const sceneBuilder = await this.viewer.loadExtension(
+      "Autodesk.Viewing.SceneBuilder"
+    );
+    const modelBuilder = await sceneBuilder.addNewModel({
+      modelNameOverride: "windDirection",
+      conserveMemory: false,
+    });
+    const globalMaterial = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(0.545, 0.271, 0.075),
+    });
+    const northGeometry = new THREE.TextGeometry(`N`, {
+      font: "monaco",
+      size: 2,
+      height: 0,
+      curveSegments: 3,
+    });
+
+    const southGeometry = new THREE.TextGeometry(`S`, {
+      font: "monaco",
+      size: 2,
+      height: 0,
+      curveSegments: 3,
+    });
+
+    const eastGeometry = new THREE.TextGeometry(`E`, {
+      font: "monaco",
+      size: 2,
+      height: 0,
+      curveSegments: 3,
+    });
+
+    const westGeometry = new THREE.TextGeometry(`W`, {
+      font: "monaco",
+      size: 2,
+      height: 0,
+      curveSegments: 3,
+    });
+    const locationText = 50;
+    const radian = 90 * (Math.PI / 180);
+    const northMesh = new THREE.Mesh(northGeometry, globalMaterial);
+    northMesh.matrix.makeRotationX(radian);
+    northMesh.matrix.setPosition(new THREE.Vector3(0, locationText, 1));
+
+    const southMesh = new THREE.Mesh(southGeometry, globalMaterial);
+    southMesh.matrix.makeRotationX(radian);
+    southMesh.matrix.setPosition(new THREE.Vector3(0, -locationText, 1));
+
+    const eastMesh = new THREE.Mesh(eastGeometry, globalMaterial);
+    eastMesh.matrix.makeRotationX(radian);
+    eastMesh.matrix.setPosition(new THREE.Vector3(locationText, 0, 1));
+
+    const westMesh = new THREE.Mesh(westGeometry, globalMaterial);
+    westMesh.matrix.makeRotationX(radian);
+    westMesh.matrix.setPosition(new THREE.Vector3(-locationText, 0, 1));
+
+    let windDirectionGeo = new THREE.Geometry();
+    windDirectionGeo.merge(northMesh.geometry, northMesh.matrix);
+    windDirectionGeo.merge(southMesh.geometry, southMesh.matrix);
+    windDirectionGeo.merge(eastMesh.geometry, eastMesh.matrix);
+    windDirectionGeo.merge(westMesh.geometry, westMesh.matrix);
+
+    windDirectionGeo.computeVertexNormals();
+
+    const windDirectionBuff = new THREE.BufferGeometry().fromGeometry(
+      windDirectionGeo
+    );
+    this.windDirection = new THREE.Mesh(windDirectionBuff, globalMaterial);
+
+    modelBuilder.addMesh(this.windDirection);
+    const windDirectionModel = modelBuilder.model;
+    this.objects.set(dbId, windDirectionModel);
+  };
+
+  addGrid = () => {
+    this.grid = new THREE.GridHelper(50, 1);
+    this.grid.material.opacity = 0.8;
+    this.grid.material.transparent = true;
+    this.grid.position.set(0, 0, 0);
+    this.grid.rotateX(Math.PI / 2);
+    if (!this.viewer.overlays.hasScene("grid")) {
+      this.viewer.overlays.addScene("grid");
+    }
+    this.viewer.overlays.addMesh(this.grid, "grid");
+  };
+
   setFlyTo(modelBuilder, dbId) {
     this.viewer.select([dbId], modelBuilder.model);
     this.viewer.utilities.fitToView();
@@ -328,9 +424,14 @@ export class BeeInventorModel {
     modelBuilder.updateMesh(this.objects[dbId]);
   }
 
-  destroy(modelBuilder) {
-    for (const property in this.objects) {
-      modelBuilder.removeMesh(this.objects[property]);
+  unloadModel = () => {
+    for (const model of this.objects.values()) {
+      this.viewer.impl.unloadModel(model);
     }
-  }
+
+    if (this.grid) {
+      this.viewer.overlays.removeMesh(this.grid, "grid");
+      this.viewer.overlays.removeScene("grid");
+    }
+  };
 }

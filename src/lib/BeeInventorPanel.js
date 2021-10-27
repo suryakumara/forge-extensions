@@ -46,11 +46,13 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.infoLongitude = null;
     this.started = false;
     this.selectedModel = null;
+    this.selectedModelRotation = null;
+    this.transformControlTx = null;
 
     this.aoa = {
       id: "4219",
-      position: [4, -5, 2],
-      rotation: [0, 135, 0],
+      position: [0, 0, 2],
+      rotation: [0, 0, 0],
     };
 
     // modelBuilder for custom Autodesk Forge
@@ -65,13 +67,18 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       })
       .then((builder) => {
         this.modelBuilder = builder;
-        this.init();
+
         console.log("modelBuilder Created.");
       });
     this.onSelection = this.onSelection.bind(this);
+    this.onItemSelected = this.onItemSelected.bind(this);
     this.viewer.addEventListener(
       Autodesk.Viewing.AGGREGATE_SELECTION_CHANGED_EVENT,
       this.onSelection
+    );
+    this.viewer.addEventListener(
+      Autodesk.Viewing.SELECTION_CHANGED_EVENT,
+      this.onItemSelected
     );
 
     document.onkeydown = (event) => {
@@ -89,6 +96,32 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       }
     };
 
+    document.onmousemove = (event) => {
+      if (!event.ctrlKey) return;
+
+      let res = this.viewer.impl.hitTest(
+        event.clientX,
+        event.clientY,
+        true,
+        null,
+        [this.viewer.model.getModelId()]
+      );
+      let pt = null;
+
+      if (res) {
+        pt = res.intersectPoint;
+      } else {
+        pt = viewer.impl.intersectGround(event.clientX, event.clientY);
+      }
+
+      let tr = this.selectedModel.getPlacementTransform();
+      tr.elements[12] = pt.x;
+      tr.elements[13] = pt.y;
+      tr.elements[14] = pt.z;
+      this.selectedModel.setPlacementTransform(tr);
+      this.viewer.impl.invalidate(true, true, true);
+    };
+
     this.beeController = new BeeInventorModel(this.viewer, this.options);
     this.forgeController = new ForgeController(this.viewer, this.options);
     this.coordinateConverter = new CoordinateConverter(
@@ -96,6 +129,7 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       121.52045303099948
     );
     this.markerMap = new Map();
+    this.socket = io("http://localhost:3333");
 
     // mapbox
     this.containerMapbox = document.createElement("div");
@@ -117,15 +151,138 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.centralMarker
       .setLngLat([121.52045303099948, 25.069771049083982])
       .addTo(this.map);
+    this.init();
     this.getDataUWB();
     this.updateBuildingPosition();
     this.updateLatLong();
     this.setVisibility();
     this.updateInfoObject();
-    this.updateUWBPosition();
+    this.setUpAOA();
+
+    this.handleSingleClick = function (event, button) {
+      console.log("handle single click");
+      return false;
+    };
+    // this.transformControl();
+  }
+
+  transformControl() {
+    var bbox = this.viewer.model.getBoundingBox();
+
+    this.viewer.impl.createOverlayScene("Dotty.Viewing.Tool.TransformTool");
+
+    this.transformControlTx = new THREE.TransformControls(
+      this.viewer.impl.camera,
+      viewer.impl.canvas,
+      "translate"
+    );
+
+    this.transformControlTx.setSize(bbox.getBoundingSphere().radius * 10);
+    this.transformControlTx.attach(this.createTransformMesh());
+    this.viewer.impl.addOverlay(
+      "Dotty.Viewing.Tool.TransformTool",
+      this.transformControlTx
+    );
+    console.log("yahoo");
+  }
+
+  handleButtonDown = function (event, button) {
+    console.log("handle button down");
+    _hitPoint = getHitPoint(event);
+
+    _isDragging = true;
+
+    if (_transformControlTx.onPointerDown(event)) return true;
+
+    //return _transRotControl.onPointerDown(event);
+    return false;
+  };
+
+  onItemSelected(event) {
+    _selectedFragProxyMap = {};
+
+    //component unselected
+
+    if (!event.fragIdsArray.length) {
+      _hitPoint = null;
+
+      _transformControlTx.visible = false;
+
+      _transformControlTx.removeEventListener("change", onTxChange);
+
+      viewer.removeEventListener(
+        Autodesk.Viewing.CAMERA_CHANGE_EVENT,
+        onCameraChanged
+      );
+
+      return;
+    }
+
+    if (_hitPoint) {
+      _transformControlTx.visible = true;
+
+      _transformControlTx.setPosition(_hitPoint);
+
+      _transformControlTx.addEventListener("change", onTxChange);
+
+      viewer.addEventListener(
+        Autodesk.Viewing.CAMERA_CHANGE_EVENT,
+        onCameraChanged
+      );
+
+      event.fragIdsArray.forEach(function (fragId) {
+        var fragProxy = viewer.impl.getFragmentProxy(viewer.model, fragId);
+
+        fragProxy.getAnimTransform();
+
+        var offset = {
+          x: _hitPoint.x - fragProxy.position.x,
+          y: _hitPoint.y - fragProxy.position.y,
+          z: _hitPoint.z - fragProxy.position.z,
+        };
+
+        fragProxy.offset = offset;
+
+        _selectedFragProxyMap[fragId] = fragProxy;
+
+        _modifiedFragIdMap[fragId] = {};
+      });
+
+      _hitPoint = null;
+    } else {
+      _transformControlTx.visible = false;
+    }
+  }
+
+  createTransformMesh() {
+    let material = new THREE.MeshPhongMaterial({ color: 0xff0000 });
+
+    this.viewer.impl.matman().addMaterial(this.guid(), material, true);
+
+    const sphere = new THREE.Mesh(
+      new THREE.SphereGeometry(0.0001, 5),
+      material
+    );
+
+    sphere.position.set(0, 0, 0);
+
+    return sphere;
+  }
+
+  guid() {
+    var d = new Date().getTime();
+
+    let guid = "xxxx-xxxx-xxxx-xxxx-xxxx".replace(/[xy]/g, function (c) {
+      var r = (d + Math.random() * 16) % 16 | 0;
+      d = Math.floor(d / 16);
+      return (c == "x" ? r : (r & 0x7) | 0x8).toString(16);
+    });
+
+    return guid;
   }
 
   onSelection(event) {
+    console.log(event);
     const selSet = event.selections;
     const firstSel = selSet[0];
     if (firstSel) {
@@ -136,19 +293,14 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
         rotation = new THREE.Quaternion(),
         scale = new THREE.Vector3();
       model.getPlacementTransform().decompose(translation, rotation, scale);
+      const rotatedMatrix = model.getPlacementTransform();
 
-      // const DBids = viewer.impl.selector.getAggregateSelection();
-      // console.log(DBids[0]);
-      console.log(translation);
-      console.log(rotation);
-      console.log(model.getPlacementTransform());
+      const rotationValueZ = this.getRotationModel(rotatedMatrix);
+      this.selectedModelRotation = rotationValueZ;
 
       let dbIds = firstSel.dbIdArray;
       let firstDbId = dbIds[0];
 
-      model.getProperties(firstDbId, (data) => {
-        console.log(data);
-      });
       const instanceTree = model.getData().instanceTree;
       const fragList = model.getFragmentList();
       let bounds = new THREE.Box3();
@@ -161,9 +313,6 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
         },
         true
       );
-      const test = this.beeController.objects[this.aoa.id];
-      // console.log(test);
-      // console.log(model);
 
       const position = bounds.getCenter();
       const positionGeo = this.coordinateConverter.cartesianToGeographic(
@@ -176,11 +325,36 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       this.infoPosition.innerText = `${Math.floor(position.x)},${Math.floor(
         position.y
       )},${Math.floor(position.z)}`;
-      this.infoRotation.innerText = `${Math.floor(rotation.x)},${Math.floor(
-        rotation.y
-      )},${Math.floor(rotation.z)}`;
+      this.infoRotation.innerText = `${Math.floor(rotationValueZ.angle)}`;
     }
   }
+
+  getRotationModel(rotatedMatrix) {
+    const Vx = rotatedMatrix.elements[0];
+    const Vy = rotatedMatrix.elements[1];
+
+    let radians;
+    if (Vx || Vy) {
+      radians = Math.atan2(Vy, Vx);
+    } else {
+      radians = 0;
+    }
+
+    if (radians < 0) {
+      radians += 2 * Math.PI;
+    }
+    const radiansToDegree = Math.round(radians * (180 / Math.PI));
+    return { angle: radiansToDegree };
+  }
+
+  quaternionToAngle = (rotatedMatrix) => {
+    let vec = new THREE.Quaternion();
+    vec.setFromRotationMatrix(rotatedMatrix);
+    const _w = vec._w;
+    let angleRadian = 2 * Math.acos(_w);
+    const angle = (angleRadian * 180) / Math.PI;
+    return { angle };
+  };
 
   updateInfoObject() {
     let infoPanel = document.createElement("div");
@@ -209,106 +383,64 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
   }
 
   init() {
-    // this.beeController.addUWB(modelBuilder, AOA.id, AOA.position, AOA.rotation);
-
-    this.beeController.addUWB(this.aoa.id, this.aoa.position);
-
-    this.worker1 = {
-      id: "0010AA",
-      position: [0, 20, 0],
-      rotation: [0, 135, 0],
-    };
-    this.beeController.addNewWorker(
-      this.worker1.id,
-      this.worker1.position,
-      this.worker1.rotation
-    );
-
-    // const restricted = {
-    //   id: "0010AA",
-    //   position: [5, 20, 0],
-    //   rotation: [0, 0, 0],
-    // };
-    // this.beeController.addRestrictedArea(
-    //   modelBuilder,
-    //   restricted.id,
-    //   restricted.position,
-    //   restricted.rotation
-    // );
-
-    // const excavator1 = {
-    //   id: "EXC14514213",
-    //   position: {
-    //     x: -5,
-    //     y: 20,
-    //     z: 0,
-    //   },
-    //   rotation: [0, 0, 0],
-    // };
-    // this.beeController.addExcavator(
-    //   excavator1.id,
-    //   excavator1.position,
-    //   excavator1.rotation
-    // );
-    // const beacon1 = {
-    //   id: "EXC145142135",
-    //   position: [-10, 20, 0],
-    //   rotation: [0, 0, 0],
-    // };
-    // this.beeController.addBeacon(
-    //   modelBuilder,
-    //   beacon1.id,
-    //   beacon1.position,
-    //   beacon1.rotation
-    // );
+    this.beeController.addGrid();
+    this.beeController.addWindDirection(1233);
   }
 
   getDataUWB() {
-    const socket = io("http://localhost:3333");
-    socket.on("UpdatePosition", (data) => {
+    this.socket.on("UpdatePosition", (data) => {
       // console.log(data);
     });
 
-    socket.on("UpdateUWB", (data) => {
+    this.socket.on("UpdateUWB", (data) => {
       this.getDatasUWB(data);
     });
 
-    socket.on("UpdateWorker", (data) => {
-      this.getDatas(data);
+    this.socket.on("UpdateWorker", (data) => {
+      // this.getDatas(data);
     });
   }
 
   getDatasUWB(datas) {
     const datasAOA = datas;
-    const aoa = this.beeController.objects.get(this.aoa.id);
-    let positionAOA = aoa.getPlacementTransform();
-    const positionAOA_X = positionAOA.elements[12];
-    const positionAOA_Y = positionAOA.elements[13];
-    // const positionAOA_Z = positionAOA.elements[14];
-    const coordAOA = this.coordinateConverter.calculateUWBPosition(
-      datasAOA.position.distance,
-      datasAOA.position.degree,
-      this.aoa.rotation[1],
-      positionAOA_X,
-      positionAOA_Y
-    );
+    const AOA = this.beeController.objects.get(this.aoa.id);
+    if (AOA) {
+      const AOAproperty = AOA.getPlacementTransform();
 
-    const beeObjects = this.beeController.objects;
-    if (
-      aoa &&
-      !beeObjects.has(datasAOA.id) &&
-      !this.markerMap.has(datasAOA.id)
-    ) {
-      this.beeController.addNewWorker(datasAOA.id, coordAOA);
-    } else {
-      const worker = this.beeController.objects.get(datasAOA.id);
-      worker.setPlacementTransform(
-        new THREE.Matrix4().setPosition({
-          x: coordAOA[0] ?? 0,
-          y: coordAOA[1] ?? 0,
-          z: coordAOA[2] ?? 0,
-        })
+      const AOAprops = {
+        position: {
+          x: AOAproperty.elements[12],
+          y: AOAproperty.elements[13],
+          z: AOAproperty.elements[14],
+        },
+        rotation: {
+          x: 0,
+          y: 0,
+          z: this.getRotationModel(AOAproperty).angle,
+        },
+      };
+
+      const coordAOA = this.coordinateConverter.calculateUWBPosition(
+        datasAOA.position.distance,
+        datasAOA.position.degree,
+        AOAprops.rotation.z,
+        AOAprops.position.x,
+        AOAprops.position.y
       );
+
+      const beeObjects = this.beeController.objects;
+      if (!beeObjects.has(datasAOA.id) && !this.markerMap.has(datasAOA.id)) {
+        this.beeController.addNewWorker(datasAOA.id, coordAOA);
+      } else {
+        const worker = this.beeController.objects.get(datasAOA.id);
+        worker.setPlacementTransform(
+          new THREE.Matrix4().setPosition({
+            x: coordAOA[0] ?? 0,
+            y: coordAOA[1] ?? 0,
+            z: AOAprops.position.z - 2 ?? 0,
+          })
+        );
+      }
     }
   }
 
@@ -490,12 +622,10 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
           this.valueZ
         );
         const angleRadian = CoordinateConverter.degreeToRadian(this.valueRot);
-        let xform = new THREE.Matrix4();
         let rotate = new THREE.Matrix4().makeRotationZ(angleRadian);
-        // let translation = new THREE.Matrix4().makeTranslation(0.1, 0.5, 0.1);
-        xform.multiply(rotate);
-        xform.multiply(this.translation);
-        this.viewer.model.setPlacementTransform(xform);
+        this.viewer.model.setPlacementTransform(
+          this.translation.multiply(rotate)
+        );
       }
     });
     this.containerBuilding.append(title);
@@ -568,90 +698,131 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.containerBuilding.append(latLongCenter);
   }
 
-  updateUWBPosition() {
+  setUpAOA() {
     const form = document.createElement("form");
-    form.setAttribute("id", "uwb-form");
+    form.setAttribute("id", "myform");
     const containerInput = document.createElement("div");
-    containerInput.className = "uwbcontainerInput";
-
+    containerInput.className = "containerInput";
+    const title = document.createElement("div");
+    title.className = "title-form";
+    title.innerText = "AOA Setup";
     const inputPosX = document.createElement("input");
     const inputPosY = document.createElement("input");
     const inputPosZ = document.createElement("input");
+    const inputRotation = document.createElement("input");
+    const labelRotation = document.createElement("label");
     const labelX = document.createElement("label");
     const labelY = document.createElement("label");
     const labelZ = document.createElement("label");
-    const title = document.createElement("h6");
-    title.innerText = "Position";
-    title.className = "uwb-title-position";
     this.setAttributes(labelX, { for: "x" });
     labelX.innerText = "x";
     this.setAttributes(labelY, { for: "y" });
     labelY.innerText = "y";
     this.setAttributes(labelZ, { for: "z" });
     labelZ.innerText = "z";
+    this.setAttributes(inputRotation, { for: "angle" });
+    labelRotation.innerText = "d";
+    this.setAttributes(inputRotation, {
+      name: "angle",
+      id: "angle",
+      type: "number",
+      value: 0,
+      class: "input-rotation",
+    });
 
     this.setAttributes(inputPosX, {
       name: "x",
       id: "x",
       type: "number",
       value: 0,
-      class: "uwb-input-position",
+      class: "input-position",
     });
     this.setAttributes(inputPosY, {
       name: "y",
       id: "y",
       type: "number",
       value: 0,
-      class: "uwb-input-position",
+      class: "input-position",
     });
     this.setAttributes(inputPosZ, {
       name: "z",
       id: "z",
       type: "number",
       value: 0,
-      class: "uwb-input-position",
+      class: "input-position",
     });
     const submit = document.createElement("input");
     this.setAttributes(submit, {
       type: "submit",
-      class: "uwb-submit-position",
+      class: "submit-position",
     });
     submit.innerText = "Submit";
     containerInput.append(
-      inputPosX,
       labelX,
-      inputPosY,
+      inputPosX,
       labelY,
-      inputPosZ,
+      inputPosY,
       labelZ,
-      submit
+      inputPosZ
     );
-    form.append(title, containerInput);
+    const createAOA = document.createElement("button");
+    this.setAttributes(createAOA, {
+      class: "create-aoa",
+    });
+    createAOA.innerText = "Add";
+
+    const angleSubmit = document.createElement("div");
+    angleSubmit.className = "submit-setup";
+    angleSubmit.append(labelRotation, inputRotation, submit);
+    form.append(containerInput, angleSubmit);
+    createAOA.addEventListener("click", () => {
+      this.beeController.addUWB(
+        this.aoa.id,
+        this.aoa.position,
+        this.aoa.rotation
+      );
+    });
+
     form.addEventListener("submit", (e) => {
       e.preventDefault();
-      this.valueUWB_X = form.elements.namedItem("x").value;
-      this.valueUWB_Y = form.elements.namedItem("y").value;
-      this.valueUWB_Z = form.elements.namedItem("z").value;
+      this.valueAOA_X = form.elements.namedItem("x").value;
+      this.valueAOA_Y = form.elements.namedItem("y").value;
+      this.valueAOA_Z = form.elements.namedItem("z").value;
+      this.valueAOA_Rotation = form.elements.namedItem("angle").value;
       if (
-        !isNaN(this.valueUWB_X) &&
-        this.valueUWB_X !== "" &&
-        this.valueUWB_X !== undefined &&
-        !isNaN(this.valueUWB_Y) &&
-        this.valueUWB_Y !== "" &&
-        this.valueUWB_Y !== undefined &&
-        !isNaN(this.valueUWB_Z) &&
-        this.valueUWB_Z !== "" &&
-        this.valueUWB_Z !== undefined
+        !isNaN(this.valueAOA_X) &&
+        this.valueAOA_X !== "" &&
+        this.valueAOA_X !== undefined &&
+        !isNaN(this.valueAOA_Y) &&
+        this.valueAOA_Y !== "" &&
+        this.valueAOA_Y !== undefined &&
+        !isNaN(this.valueAOA_Z) &&
+        this.valueAOA_Z !== "" &&
+        this.valueAOA_Z !== undefined &&
+        !isNaN(this.valueAOA_Rotation) &&
+        this.valueAOA_Rotation !== "" &&
+        this.valueAOA_Rotation !== undefined
       ) {
-        const aoa = this.beeController.objects[this.aoa.id];
-        aoa.matrix.setPosition(
-          new THREE.Vector3(this.valueUWB_X, this.valueUWB_Y, this.valueUWB_Z)
-        );
-        this.modelBuilder.updateMesh(aoa);
+        if (this.selectedModel) {
+          const translation = new THREE.Matrix4().makeTranslation(
+            this.valueAOA_X,
+            this.valueAOA_Y,
+            this.valueAOA_Z
+          );
+          const angleRadian = CoordinateConverter.degreeToRadian(
+            this.valueAOA_Rotation
+          );
+          const rotationAOA = new THREE.Matrix4().makeRotationZ(angleRadian);
+          this.selectedModel.setPlacementTransform(
+            translation.multiply(rotationAOA)
+          );
+        }
       }
     });
 
+    this.containerUWB.append(title);
     this.containerUWB.append(form);
+    this.containerUWB.append(createAOA);
   }
 
   setVisibility() {
@@ -693,9 +864,7 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
   };
 
   destroy() {
-    this.forgeController.destroy();
-    if (this.modelBuilder) {
-      this.beeController.destroy(this.modelBuilder);
-    }
+    this.socket.close();
+    this.beeController.unloadModel();
   }
 }

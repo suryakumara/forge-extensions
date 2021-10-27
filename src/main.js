@@ -17,15 +17,6 @@ class BeeInventor extends Autodesk.Viewing.Extension {
   load() {
     console.log("Docking Panel has been loaded !");
 
-    this.grid = new THREE.GridHelper(50, 1);
-    this.grid.material.opacity = 0.8;
-    this.grid.material.transparent = true;
-    this.grid.position.set(0, 0, 0);
-    this.grid.rotateX(Math.PI / 2);
-    if (!this.viewer.overlays.hasScene("grid")) {
-      this.viewer.overlays.addScene("grid");
-    }
-    this.viewer.overlays.addMesh(this.grid, "grid");
     return true;
   }
 
