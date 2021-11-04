@@ -131,11 +131,18 @@
 }
 
 .create-aoa {
-  /* justify-self: end;
-  height: 1rem;
-  margin-left: 3rem;
-  font-size: small; */
+  box-sizing: border-box;
+  background-color: #fff;
+  color: #000000;
+  cursor: pointer;
+  height: 2rem;
+  font-size: small;
+  vertical-align: middle;
+  margin-top: 0.1rem;
+  padding: 0 5px;
+}
 
+.delete-aoa {
   box-sizing: border-box;
   background-color: #fff;
   color: #000000;

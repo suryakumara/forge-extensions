@@ -52,7 +52,7 @@ class BeeInventor extends Autodesk.Viewing.Extension {
       }
       this.panel.setVisible(!this.panel.isVisible());
       if (!this.panel.isVisible()) {
-        this.panel.destroy();
+        this.panel.uninitialize();
       }
     };
     this._button.setToolTip("BeeInventor IoT");

@@ -133,4 +133,17 @@ export class CoordinateConverter {
 
     return newCoordinatesAfterRotate;
   };
+
+  geographicToCartesian2D = (geoLocation) => {
+    console.log(geoLocation);
+    let newCoordinateCartesian = [];
+
+    for (let i = 0; i < geoLocation.length; i++) {
+      newCoordinateCartesian.push(
+        this.geographicToCartesian(geoLocation[i][1], geoLocation[i][0])
+      );
+    }
+
+    return newCoordinateCartesian;
+  };
 }

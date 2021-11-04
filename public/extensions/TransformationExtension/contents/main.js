@@ -66,21 +66,18 @@ Autodesk.ADN.Viewing.Extension.TransformTool = function (viewer, options) {
     //
     ///////////////////////////////////////////////////////////////////////////
     function onTxChange() {
-      console.log("onTx change");
-      for (var fragId in _selectedFragProxyMap) {
-        var fragProxy = _selectedFragProxyMap[fragId];
-
-        var position = new THREE.Vector3(
-          _transformMesh.position.x - fragProxy.offset.x,
-          _transformMesh.position.y - fragProxy.offset.y,
-          _transformMesh.position.z - fragProxy.offset.z
-        );
-
-        fragProxy.position = position;
-
-        fragProxy.updateAnimTransform();
-      }
-
+      // console.log("onTx change");
+      // for (var fragId in _selectedFragProxyMap) {
+      //   var fragProxy = _selectedFragProxyMap[fragId];
+      //   var position = new THREE.Vector3(
+      //     _transformMesh.position.x - fragProxy.offset.x,
+      //     _transformMesh.position.y - fragProxy.offset.y,
+      //     _transformMesh.position.z - fragProxy.offset.z
+      //   );
+      //   fragProxy.position = position;
+      //   fragProxy.updateAnimTransform();
+      // }
+      console.log(this);
       viewer.impl.sceneUpdated(true);
     }
 
@@ -89,8 +86,8 @@ Autodesk.ADN.Viewing.Extension.TransformTool = function (viewer, options) {
     //
     ///////////////////////////////////////////////////////////////////////////
     function onCameraChanged() {
-      console.log("on camera changed");
-      _transformControlTx.update();
+      // console.log("on camera changed");
+      // _transformControlTx.update();
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -98,56 +95,59 @@ Autodesk.ADN.Viewing.Extension.TransformTool = function (viewer, options) {
     //
     ///////////////////////////////////////////////////////////////////////////
     function onItemSelected(event) {
-      console.log("on item selected");
-      _selectedFragProxyMap = {};
+      console.log(this);
+      // console.log("on item selected");
+      // _selectedFragProxyMap = {};
 
-      //component unselected
+      // //component unselected
 
-      if (!event.fragIdsArray.length) {
-        _hitPoint = null;
+      // if (!event.fragIdsArray.length) {
+      //   _hitPoint = null;
 
-        _transformControlTx.visible = false;
+      //   _transformControlTx.visible = false;
 
-        _transformControlTx.removeEventListener("change", onTxChange);
+      // _transformControlTx.removeEventListener("change", onTxChange);
 
-        viewer.removeEventListener(
-          Autodesk.Viewing.CAMERA_CHANGE_EVENT,
-          onCameraChanged
-        );
+      //   viewer.removeEventListener(
+      //     Autodesk.Viewing.CAMERA_CHANGE_EVENT,
+      //     onCameraChanged
+      //   );
 
-        return;
-      }
+      //   return;
+      // }
+      console.log(event);
 
       if (_hitPoint) {
-        console.log("hit location");
         _transformControlTx.visible = true;
+        console.log(_hitPoint);
 
+        console.log(_hitPoint);
         _transformControlTx.setPosition(_hitPoint);
 
         _transformControlTx.addEventListener("change", onTxChange);
 
-        viewer.addEventListener(
-          Autodesk.Viewing.CAMERA_CHANGE_EVENT,
-          onCameraChanged
-        );
+        // viewer.addEventListener(
+        //   Autodesk.Viewing.CAMERA_CHANGE_EVENT,
+        //   onCameraChanged
+        // );
 
-        event.fragIdsArray.forEach(function (fragId) {
-          var fragProxy = viewer.impl.getFragmentProxy(viewer.model, fragId);
+        // event.fragIdsArray.forEach(function (fragId) {
+        //   var fragProxy = viewer.impl.getFragmentProxy(viewer.model, fragId);
 
-          fragProxy.getAnimTransform();
+        //   fragProxy.getAnimTransform();
 
-          var offset = {
-            x: _hitPoint.x - fragProxy.position.x,
-            y: _hitPoint.y - fragProxy.position.y,
-            z: _hitPoint.z - fragProxy.position.z,
-          };
+        //   var offset = {
+        //     x: _hitPoint.x - fragProxy.position.x,
+        //     y: _hitPoint.y - fragProxy.position.y,
+        //     z: _hitPoint.z - fragProxy.position.z,
+        //   };
 
-          fragProxy.offset = offset;
+        //   fragProxy.offset = offset;
 
-          _selectedFragProxyMap[fragId] = fragProxy;
+        //   _selectedFragProxyMap[fragId] = fragProxy;
 
-          _modifiedFragIdMap[fragId] = {};
-        });
+        //   _modifiedFragIdMap[fragId] = {};
+        // });
 
         _hitPoint = null;
       } else {
@@ -177,7 +177,6 @@ Autodesk.ADN.Viewing.Extension.TransformTool = function (viewer, options) {
     ///////////////////////////////////////////////////////////////////////////
     function getHitPoint(event) {
       console.log("get hit point");
-      console.log(event);
       var screenPoint = {
         x: event.clientX,
         y: event.clientY,
@@ -186,7 +185,7 @@ Autodesk.ADN.Viewing.Extension.TransformTool = function (viewer, options) {
       var n = normalize(screenPoint);
 
       var hitPoint = viewer.utilities.getHitPoint(n.x, n.y);
-
+      console.log(hitPoint);
       return hitPoint;
     }
 
@@ -194,24 +193,24 @@ Autodesk.ADN.Viewing.Extension.TransformTool = function (viewer, options) {
     // returns all transformed meshes
     //
     ///////////////////////////////////////////////////////////////////////////
-    this.getTransformMap = function () {
-      console.log("get transform map");
-      var transformMap = {};
+    // this.getTransformMap = function () {
+    //   console.log("get transform map");
+    //   var transformMap = {};
 
-      for (var fragId in _modifiedFragIdMap) {
-        var fragProxy = viewer.impl.getFragmentProxy(viewer.model, fragId);
+    //   for (var fragId in _modifiedFragIdMap) {
+    //     var fragProxy = viewer.impl.getFragmentProxy(viewer.model, fragId);
 
-        fragProxy.getAnimTransform();
+    //     fragProxy.getAnimTransform();
 
-        transformMap[fragId] = {
-          position: fragProxy.position,
-        };
+    //     transformMap[fragId] = {
+    //       position: fragProxy.position,
+    //     };
 
-        fragProxy = null;
-      }
+    //     fragProxy = null;
+    //   }
 
-      return transformMap;
-    };
+    //   return transformMap;
+    // };
 
     ///////////////////////////////////////////////////////////////////////////
     //
@@ -231,7 +230,6 @@ Autodesk.ADN.Viewing.Extension.TransformTool = function (viewer, options) {
     ///////////////////////////////////////////////////////////////////////////
     this.activate = function () {
       viewer.select([]);
-      console.log("select");
 
       var bbox = viewer.model.getBoundingBox();
 
@@ -240,7 +238,7 @@ Autodesk.ADN.Viewing.Extension.TransformTool = function (viewer, options) {
       _transformControlTx = new THREE.TransformControls(
         viewer.impl.camera,
         viewer.impl.canvas,
-        "translate"
+        "rotate"
       );
 
       _transformControlTx.setSize(bbox.getBoundingSphere().radius * 5);
@@ -255,7 +253,7 @@ Autodesk.ADN.Viewing.Extension.TransformTool = function (viewer, options) {
       _transformMesh = createTransformMesh();
 
       _transformControlTx.attach(_transformMesh);
-
+      console.log(this);
       viewer.addEventListener(
         Autodesk.Viewing.SELECTION_CHANGED_EVENT,
         onItemSelected
@@ -273,7 +271,7 @@ Autodesk.ADN.Viewing.Extension.TransformTool = function (viewer, options) {
         _transformControlTx
       );
 
-      _transformControlTx.removeEventListener("change", onTxChange);
+      // _transformControlTx.removeEventListener("change", onTxChange);
 
       _transformControlTx = null;
 
@@ -294,54 +292,55 @@ Autodesk.ADN.Viewing.Extension.TransformTool = function (viewer, options) {
     //
     //
     ///////////////////////////////////////////////////////////////////////////
-    this.update = function (t) {
-      return false;
-    };
+    // this.update = function (t) {
+    //   return false;
+    // };
 
-    this.handleSingleClick = function (event, button) {
-      console.log("handle single click");
-      return false;
-    };
+    // this.handleSingleClick = function (event, button) {
+    //   console.log("handle single click");
+    //   return false;
+    // };
 
-    this.handleDoubleClick = function (event, button) {
-      return false;
-    };
+    // this.handleDoubleClick = function (event, button) {
+    //   return false;
+    // };
 
-    this.handleSingleTap = function (event) {
-      return false;
-    };
+    // this.handleSingleTap = function (event) {
+    //   return false;
+    // };
 
-    this.handleDoubleTap = function (event) {
-      return false;
-    };
+    // this.handleDoubleTap = function (event) {
+    //   return false;
+    // };
 
-    this.handleKeyDown = function (event, keyCode) {
-      return false;
-    };
+    // this.handleKeyDown = function (event, keyCode) {
+    //   return false;
+    // };
 
-    this.handleKeyUp = function (event, keyCode) {
-      console.log("handle keycode");
-      return false;
-    };
+    // this.handleKeyUp = function (event, keyCode) {
+    //   console.log("handle keycode");
+    //   return false;
+    // };
 
-    this.handleWheelInput = function (delta) {
-      return false;
-    };
+    // this.handleWheelInput = function (delta) {
+    //   return false;
+    // };
 
     ///////////////////////////////////////////////////////////////////////////
     //
     //
     ///////////////////////////////////////////////////////////////////////////
     this.handleButtonDown = function (event, button) {
+      console.log(event);
       console.log("handle button down");
       _hitPoint = getHitPoint(event);
-
+      console.log(_hitPoint);
       _isDragging = true;
-
+      console.log(event);
       if (_transformControlTx.onPointerDown(event)) return true;
 
       //return _transRotControl.onPointerDown(event);
-      return false;
+      // return false;
     };
 
     ///////////////////////////////////////////////////////////////////////////
@@ -351,11 +350,11 @@ Autodesk.ADN.Viewing.Extension.TransformTool = function (viewer, options) {
     this.handleButtonUp = function (event, button) {
       console.log("handle button up");
       _isDragging = false;
-
+      console.log(event);
       if (_transformControlTx.onPointerUp(event)) return true;
 
       //return _transRotControl.onPointerUp(event);
-      return false;
+      // return false;
     };
 
     ///////////////////////////////////////////////////////////////////////////
@@ -363,20 +362,18 @@ Autodesk.ADN.Viewing.Extension.TransformTool = function (viewer, options) {
     //
     ///////////////////////////////////////////////////////////////////////////
     this.handleMouseMove = function (event) {
-      console.log(event);
-      console.log("handle Mouse move");
       if (_isDragging) {
         if (_transformControlTx.onPointerMove(event)) {
           return true;
         }
 
-        return false;
+        // return false;
       }
 
       if (_transformControlTx.onPointerHover(event)) return true;
 
       //return _transRotControl.onPointerHover(event);
-      return false;
+      // return false;
     };
 
     ///////////////////////////////////////////////////////////////////////////

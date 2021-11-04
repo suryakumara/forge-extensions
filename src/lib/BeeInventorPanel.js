@@ -2,6 +2,9 @@
 import { BeeInventorModel } from "./BeeInventorModel";
 import { CoordinateConverter } from "./CoordinateConverter";
 import { ForgeController } from "./ForgeController";
+import { TransformTool } from "./TransformTool";
+
+const TransformToolName = "xform-tool";
 
 export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
   constructor(viewer, container, id, title, options) {
@@ -48,12 +51,23 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.selectedModel = null;
     this.selectedModelRotation = null;
     this.transformControlTx = null;
+    this.isDragging = false;
+    this.hitPoint = null;
+    this._tool = null;
 
     this.aoa = {
       id: "4219",
       position: [0, 0, 2],
       rotation: [0, 0, 0],
     };
+    this.resA = {
+      id: "12312",
+      position: [0, 10, 0],
+      rotation: [0, 0, 0],
+    };
+    this.viewerContainer = document.querySelector(
+      `#${this.viewer.clientContainer.id}`
+    );
 
     // modelBuilder for custom Autodesk Forge
     this.viewer
@@ -70,60 +84,49 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
 
         console.log("modelBuilder Created.");
       });
+
     this.onSelection = this.onSelection.bind(this);
-    this.onItemSelected = this.onItemSelected.bind(this);
     this.viewer.addEventListener(
       Autodesk.Viewing.AGGREGATE_SELECTION_CHANGED_EVENT,
       this.onSelection
     );
-    this.viewer.addEventListener(
-      Autodesk.Viewing.SELECTION_CHANGED_EVENT,
-      this.onItemSelected
-    );
-
-    document.onkeydown = (event) => {
-      if (this.selectedModel) {
-        if (event.code === "KeyA") {
-          let tr = this.selectedModel.getPlacementTransform();
-          tr.elements[12] -= 0.1;
-          this.selectedModel.setPlacementTransform(tr);
-        }
-        if (event.code === "KeyD") {
-          let tr = this.selectedModel.getPlacementTransform();
-          tr.elements[12] += 0.1;
-          this.selectedModel.setPlacementTransform(tr);
-        }
-      }
-    };
 
     document.onmousemove = (event) => {
-      if (!event.ctrlKey) return;
+      if (event.ctrlKey) {
+        const viewerContainer = document.querySelector(
+          `#${this.viewer.clientContainer.id}`
+        );
+        const containerSize = viewerContainer.getBoundingClientRect();
 
-      let res = this.viewer.impl.hitTest(
-        event.clientX,
-        event.clientY,
-        true,
-        null,
-        [this.viewer.model.getModelId()]
-      );
-      let pt = null;
+        let res = this.viewer.impl.hitTest(
+          event.clientX - containerSize.left,
+          event.clientY - containerSize.top,
+          true,
+          null,
+          [this.viewer.model.getModelId()]
+        );
+        let pt = null;
 
-      if (res) {
-        pt = res.intersectPoint;
-      } else {
-        pt = viewer.impl.intersectGround(event.clientX, event.clientY);
+        if (res) {
+          pt = res.intersectPoint;
+        } else {
+          pt = viewer.impl.intersectGround(
+            event.clientX - containerSize.left,
+            event.clientY - containerSize.top
+          );
+        }
+
+        let tr = this.selectedModel.getPlacementTransform();
+        tr.elements[12] = pt.x;
+        tr.elements[13] = pt.y;
+        tr.elements[14] = pt.z;
+        this.selectedModel.setPlacementTransform(tr);
+        this.viewer.impl.invalidate(true, true, true);
       }
-
-      let tr = this.selectedModel.getPlacementTransform();
-      tr.elements[12] = pt.x;
-      tr.elements[13] = pt.y;
-      tr.elements[14] = pt.z;
-      this.selectedModel.setPlacementTransform(tr);
-      this.viewer.impl.invalidate(true, true, true);
     };
 
     this.beeController = new BeeInventorModel(this.viewer, this.options);
-    this.forgeController = new ForgeController(this.viewer, this.options);
+    this.Controller = new ForgeController(this.viewer, this.options);
     this.coordinateConverter = new CoordinateConverter(
       25.069771049083982,
       121.52045303099948
@@ -134,10 +137,9 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     // mapbox
     this.containerMapbox = document.createElement("div");
     this.containerMapbox.setAttribute("id", "map");
-    this.viewerContainer = document.querySelector(
-      `#${this.viewer.clientContainer.id}`
-    );
+
     this.viewerContainer.append(this.containerMapbox);
+
     mapboxgl.accessToken =
       "pk.eyJ1IjoiYmVlaW52ZW50b3IiLCJhIjoiY2p1anFjbTY0MW9hMDRlcDRzMW9tcHJ1OSJ9.9WIfYAKd10XIdwWpB9EZFQ";
     this.map = new mapboxgl.Map({
@@ -158,134 +160,36 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.setVisibility();
     this.updateInfoObject();
     this.setUpAOA();
-
-    this.handleSingleClick = function (event, button) {
-      console.log("handle single click");
-      return false;
-    };
-    // this.transformControl();
   }
 
-  transformControl() {
-    var bbox = this.viewer.model.getBoundingBox();
-
-    this.viewer.impl.createOverlayScene("Dotty.Viewing.Tool.TransformTool");
-
-    this.transformControlTx = new THREE.TransformControls(
-      this.viewer.impl.camera,
-      viewer.impl.canvas,
-      "translate"
-    );
-
-    this.transformControlTx.setSize(bbox.getBoundingSphere().radius * 10);
-    this.transformControlTx.attach(this.createTransformMesh());
-    this.viewer.impl.addOverlay(
-      "Dotty.Viewing.Tool.TransformTool",
-      this.transformControlTx
-    );
-    console.log("yahoo");
-  }
-
-  handleButtonDown = function (event, button) {
-    console.log("handle button down");
-    _hitPoint = getHitPoint(event);
-
-    _isDragging = true;
-
-    if (_transformControlTx.onPointerDown(event)) return true;
-
-    //return _transRotControl.onPointerDown(event);
-    return false;
-  };
-
-  onItemSelected(event) {
-    _selectedFragProxyMap = {};
-
-    //component unselected
-
-    if (!event.fragIdsArray.length) {
-      _hitPoint = null;
-
-      _transformControlTx.visible = false;
-
-      _transformControlTx.removeEventListener("change", onTxChange);
-
-      viewer.removeEventListener(
-        Autodesk.Viewing.CAMERA_CHANGE_EVENT,
-        onCameraChanged
-      );
-
-      return;
+  _enableTransformTool() {
+    const controller = this.viewer.toolController;
+    if (!this._tool) {
+      this._tool = new TransformTool();
+      controller.registerTool(this._tool);
     }
-
-    if (_hitPoint) {
-      _transformControlTx.visible = true;
-
-      _transformControlTx.setPosition(_hitPoint);
-
-      _transformControlTx.addEventListener("change", onTxChange);
-
-      viewer.addEventListener(
-        Autodesk.Viewing.CAMERA_CHANGE_EVENT,
-        onCameraChanged
-      );
-
-      event.fragIdsArray.forEach(function (fragId) {
-        var fragProxy = viewer.impl.getFragmentProxy(viewer.model, fragId);
-
-        fragProxy.getAnimTransform();
-
-        var offset = {
-          x: _hitPoint.x - fragProxy.position.x,
-          y: _hitPoint.y - fragProxy.position.y,
-          z: _hitPoint.z - fragProxy.position.z,
-        };
-
-        fragProxy.offset = offset;
-
-        _selectedFragProxyMap[fragId] = fragProxy;
-
-        _modifiedFragIdMap[fragId] = {};
-      });
-
-      _hitPoint = null;
-    } else {
-      _transformControlTx.visible = false;
+    if (!controller.isToolActivated(TransformToolName)) {
+      controller.activateTool(TransformToolName);
     }
   }
 
-  createTransformMesh() {
-    let material = new THREE.MeshPhongMaterial({ color: 0xff0000 });
-
-    this.viewer.impl.matman().addMaterial(this.guid(), material, true);
-
-    const sphere = new THREE.Mesh(
-      new THREE.SphereGeometry(0.0001, 5),
-      material
-    );
-
-    sphere.position.set(0, 0, 0);
-
-    return sphere;
-  }
-
-  guid() {
-    var d = new Date().getTime();
-
-    let guid = "xxxx-xxxx-xxxx-xxxx-xxxx".replace(/[xy]/g, function (c) {
-      var r = (d + Math.random() * 16) % 16 | 0;
-      d = Math.floor(d / 16);
-      return (c == "x" ? r : (r & 0x7) | 0x8).toString(16);
-    });
-
-    return guid;
+  _disableTransformTool() {
+    const controller = this.viewer.toolController;
+    if (this._tool && controller.isToolActivated(TransformToolName)) {
+      controller.deactivateTool(TransformToolName);
+    }
   }
 
   onSelection(event) {
-    console.log(event);
     const selSet = event.selections;
     const firstSel = selSet[0];
+
     if (firstSel) {
+      const listdbIds = firstSel.dbIdArray;
+      const dbidItem = listdbIds[0];
+      const typeModel = dbidItem.toString().slice(0, 3);
+      if (typeModel !== "500") return;
+
       const model = firstSel.model;
       this.selectedModel = model;
 
@@ -315,17 +219,26 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       );
 
       const position = bounds.getCenter();
+
       const positionGeo = this.coordinateConverter.cartesianToGeographic(
         position.x,
         position.y
       );
+      const idModel = this.getTypeOfModel(firstDbId.toString());
       this.infoLatitude.innerText = positionGeo.latitude;
       this.infoLongitude.innerText = positionGeo.longitude;
-      this.infoId.innerText = firstDbId;
+      this.infoId.innerText = idModel.idDevice;
       this.infoPosition.innerText = `${Math.floor(position.x)},${Math.floor(
         position.y
       )},${Math.floor(position.z)}`;
       this.infoRotation.innerText = `${Math.floor(rotationValueZ.angle)}`;
+    } else {
+      this.selectedModel = null;
+      this.infoLatitude.innerText = "";
+      this.infoLongitude.innerText = "";
+      this.infoId.innerText = "";
+      this.infoPosition.innerText = "";
+      this.infoRotation.innerText = "";
     }
   }
 
@@ -383,6 +296,63 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
   }
 
   init() {
+    const humaProp = {
+      id: "12A312",
+      position: [10, 10, 0],
+      rotation: [0, 0, 0],
+    };
+    this.beeController.addNewWorker(
+      humaProp.id,
+      humaProp.position,
+      humaProp.rotation
+    );
+
+    const excavatorProps = {
+      id: "E1231A43",
+      position: [5, 10, 0],
+      rotation: [0, 0, 0],
+    };
+    this.beeController.addExcavator(
+      excavatorProps.id,
+      excavatorProps.position,
+      excavatorProps.rotation
+    );
+
+    const beaconProp = {
+      id: "E143231A43",
+      position: [-5, 10, 0],
+      rotation: [0, 0, 0],
+    };
+    this.beeController.addBeacon(
+      beaconProp.id,
+      beaconProp.position,
+      beaconProp.rotation
+    );
+
+    this.beeController.addRestrictedArea(
+      this.resA.id,
+      this.resA.position,
+      this.resA.rotation
+    );
+
+    const resCust = {
+      id: "E143231A43",
+      geoLocation: [
+        [121.51998, 25.07044],
+        [121.51981, 25.0702],
+        [121.52, 25.06996],
+        [121.5202, 25.07019],
+        [121.52051, 25.07027],
+        [121.52035, 25.07043],
+      ],
+      height: 2,
+    };
+    const newCoords = this.coordinateConverter.geographicToCartesian2D(
+      resCust.geoLocation
+    );
+
+    this.beeController.addCustomRestrictedArea(resCust.id, newCoords);
+
     this.beeController.addGrid();
     this.beeController.addWindDirection(1233);
   }
@@ -399,6 +369,33 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.socket.on("UpdateWorker", (data) => {
       // this.getDatas(data);
     });
+  }
+
+  getTypeOfModel(dbId) {
+    // model only receive int number
+    let idDevice = "";
+    const typeModel = dbId.slice(0, 4);
+    switch (typeModel) {
+      case "5001":
+        idDevice = dbId.replace(/^.{4}/g, "AOA-");
+        break;
+      case "5002":
+        idDevice = dbId.replace(/^.{4}/g, "Worker-");
+        break;
+      case "5003":
+        idDevice = dbId.replace(/^.{4}/g, "RA-");
+        break;
+      case "5004":
+        idDevice = dbId.replace(/^.{4}/g, "EXT-");
+        break;
+      case "5005":
+        idDevice = dbId.replace(/^.{4}/g, "BCN-");
+        break;
+      default:
+        idDevice = dbId;
+        break;
+    }
+    return { idDevice };
   }
 
   getDatasUWB(datas) {
@@ -771,16 +768,50 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     });
     createAOA.innerText = "Add";
 
+    const deleteAOA = document.createElement("button");
+    this.setAttributes(deleteAOA, {
+      class: "delete-aoa",
+    });
+    deleteAOA.innerText = "Delete";
+
+    const transformTool = document.createElement("input");
+    const transformToolLabel = document.createElement("label");
+
+    transformToolLabel.innerText = "Transform Tool";
+
+    function setAttributes(el, attrs) {
+      for (let key in attrs) {
+        el.setAttribute(key, attrs[key]);
+      }
+    }
+    setAttributes(transformTool, {
+      type: "checkbox",
+      id: "toggleTransformTool",
+    });
+
+    transformTool.addEventListener("change", () => {
+      if (transformTool.checked) {
+        this._enableTransformTool();
+      } else {
+        this._disableTransformTool();
+      }
+    });
+
     const angleSubmit = document.createElement("div");
     angleSubmit.className = "submit-setup";
     angleSubmit.append(labelRotation, inputRotation, submit);
     form.append(containerInput, angleSubmit);
+
     createAOA.addEventListener("click", () => {
       this.beeController.addUWB(
         this.aoa.id,
         this.aoa.position,
         this.aoa.rotation
       );
+    });
+
+    deleteAOA.addEventListener("click", () => {
+      this.viewer.impl.unloadModel(this.selectedModel);
     });
 
     form.addEventListener("submit", (e) => {
@@ -819,10 +850,14 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
         }
       }
     });
-
     this.containerUWB.append(title);
     this.containerUWB.append(form);
-    this.containerUWB.append(createAOA);
+    this.containerUWB.append(
+      createAOA,
+      deleteAOA,
+      transformTool,
+      transformToolLabel
+    );
   }
 
   setVisibility() {
@@ -863,8 +898,14 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     let viewState = this.viewer.getState();
   };
 
-  destroy() {
+  uninitialize() {
+    console.info("uninitialize");
     this.socket.close();
+    this._disableTransformTool();
+    this.viewer.removeEventListener(
+      Autodesk.Viewing.AGGREGATE_SELECTION_CHANGED_EVENT,
+      this.onSelection
+    );
     this.beeController.unloadModel();
   }
 }
