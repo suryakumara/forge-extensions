@@ -13,7 +13,6 @@ export class BeeInventorModel {
   }
 
   addCustomRestrictedArea = async (dbId, geoLocation, height) => {
-    console.log(geoLocation.length);
     if (geoLocation.length > 0) {
       const sceneBuilder = await this.viewer.loadExtension(
         "Autodesk.Viewing.SceneBuilder"
@@ -23,15 +22,17 @@ export class BeeInventorModel {
         conserveMemory: false,
       });
 
-      const globalMaterial = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(0.863, 0.078, 0.235),
+      const globalMaterial = new THREE.MeshPhongMaterial({
+        color: new THREE.Color(1, 0, 0),
+        transparent: true,
+        opacity: 0.1,
       });
 
       const geoPoint = [];
       geoLocation.forEach((coord) => {
         geoPoint.push(new THREE.Vector2(coord.x, coord.y));
       });
-      console.log(geoPoint);
+
       // geoPoint.push(new THREE.Vector2(0, 1));
       // geoPoint.push(new THREE.Vector2(-1, 1));
       // geoPoint.push(new THREE.Vector2(-1, -1));
@@ -57,18 +58,12 @@ export class BeeInventorModel {
       this.customRestrictedArea.userData.id = dbId;
       const customRestrictedAreaId = this.idToNumber(dbId);
       this.customRestrictedArea.dbId = parseInt(
-        `${5009}${customRestrictedAreaId}`
+        `${5003}${customRestrictedAreaId}`
       );
       modelBuilder.addMesh(this.customRestrictedArea);
 
       let customRestrictedAreaModel = modelBuilder.model;
-      // customRestrictedAreaModel.setPlacementTransform(
-      //   new THREE.Matrix4().setPosition({
-      //     x: position[0] ?? 0,
-      //     y: position[1] ?? 0,
-      //     z: position[2] ?? 0,
-      //   })
-      // );
+
       this.objects.set(dbId, customRestrictedAreaModel);
     }
   };
@@ -89,7 +84,7 @@ export class BeeInventorModel {
       modelNameOverride: "uwb",
       conserveMemory: false,
     });
-    const globalMaterial = new THREE.MeshBasicMaterial({
+    const globalMaterial = new THREE.MeshPhongMaterial({
       color: new THREE.Color(0.863, 0.078, 0.235),
       opacity: 0.8,
       transparent: true,
@@ -170,7 +165,7 @@ export class BeeInventorModel {
       conserveMemory: false,
     });
     let modelGeometry = new THREE.Geometry();
-    const globalMaterial = new THREE.MeshBasicMaterial({
+    const globalMaterial = new THREE.MeshPhongMaterial({
       color: new THREE.Color(0.863, 0.078, 0.235),
     });
     const head = new THREE.SphereGeometry(0.5, 32, 16);
@@ -203,6 +198,14 @@ export class BeeInventorModel {
     this.humanModel.userData.id = dbId;
     const workerDBID = this.idToNumber(dbId);
     this.humanModel.dbId = parseInt(`${5002}${workerDBID}`);
+
+    const box = new THREE.Box3();
+    this.humanModel.geometry.computeBoundingBox();
+    const nodebBox = box
+      .copy(this.humanModel.geometry.boundingBox)
+      .applyMatrix4(this.humanModel.matrixWorld);
+
+    console.log(nodebBox.getCenter());
     modelBuilder.addMesh(this.humanModel);
 
     const workerModel = modelBuilder.model;
@@ -228,7 +231,7 @@ export class BeeInventorModel {
     const size_box = 1;
     const box = new THREE.BoxGeometry(size_box, size_box, size_box);
 
-    const globalMaterial = new THREE.MeshBasicMaterial({
+    const globalMaterial = new THREE.MeshPhongMaterial({
       color: new THREE.Color(1, 0, 0),
       opacity: 0.5,
       transparent: true,
@@ -262,7 +265,7 @@ export class BeeInventorModel {
       conserveMemory: false,
     });
 
-    const globalMaterial = new THREE.MeshBasicMaterial({
+    const globalMaterial = new THREE.MeshPhongMaterial({
       color: new THREE.Color(1, 0, 0),
     });
     const texture = THREE.ImageUtils.loadTexture(
@@ -334,7 +337,7 @@ export class BeeInventorModel {
       height: 0,
       curveSegments: 3,
     });
-    const globalMaterial = new THREE.MeshBasicMaterial({
+    const globalMaterial = new THREE.MeshPhongMaterial({
       color: new THREE.Color(1, 0, 0),
     });
     const textMesh = new THREE.Mesh(textGeometry, globalMaterial);

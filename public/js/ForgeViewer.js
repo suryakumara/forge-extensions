@@ -46,11 +46,11 @@ function onDocumentLoadSuccess(doc) {
       applyScaling: { to: "meters" },
       globalOffset: { x: 0, y: 0, z: 0 },
       keepCurrentModels: true,
-      placementTransform: new THREE.Matrix4().setPosition({
-        x: -3.9,
-        y: -4.85,
-        z: 0,
-      }),
+      // placementTransform: new THREE.Matrix4().setPosition({
+      //   x: -3.9,
+      //   y: -4.85,
+      //   z: 0,
+      // }),
     })
     .then((i) => {
       // documented loaded, any action?

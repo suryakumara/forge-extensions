@@ -153,7 +153,9 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.centralMarker
       .setLngLat([121.52045303099948, 25.069771049083982])
       .addTo(this.map);
+    this.load();
     this.init();
+    this.initModel();
     this.getDataUWB();
     this.updateBuildingPosition();
     this.updateLatLong();
@@ -183,6 +185,9 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
   onSelection(event) {
     const selSet = event.selections;
     const firstSel = selSet[0];
+    if (this.infoCard) {
+      this.infoCard.remove();
+    }
 
     if (firstSel) {
       const listdbIds = firstSel.dbIdArray;
@@ -218,20 +223,33 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
         true
       );
 
-      const position = bounds.getCenter();
+      this.posModel = bounds.getCenter();
+      this.enabled = true;
 
       const positionGeo = this.coordinateConverter.cartesianToGeographic(
-        position.x,
-        position.y
+        this.posModel.x,
+        this.posModel.y
       );
       const idModel = this.getTypeOfModel(firstDbId.toString());
-      this.infoLatitude.innerText = positionGeo.latitude;
-      this.infoLongitude.innerText = positionGeo.longitude;
-      this.infoId.innerText = idModel.idDevice;
-      this.infoPosition.innerText = `${Math.floor(position.x)},${Math.floor(
-        position.y
-      )},${Math.floor(position.z)}`;
-      this.infoRotation.innerText = `${Math.floor(rotationValueZ.angle)}`;
+
+      const objectInfo = {
+        id: idModel.idDevice,
+        position: `${Math.floor(this.posModel.x)},${Math.floor(
+          this.posModel.y
+        )},${Math.floor(this.posModel.z)}`,
+        rotation: `${Math.floor(rotationValueZ.angle)}`,
+        latitude: positionGeo.latitude,
+        longitude: positionGeo.longitude,
+      };
+
+      this.infoId.innerText = objectInfo.id;
+      this.infoLatitude.innerText = objectInfo.latitude;
+      this.infoLongitude.innerText = objectInfo.longitude;
+      this.infoPosition.innerText = objectInfo.position;
+      this.infoRotation.innerText = objectInfo.rotation;
+      // put on the last
+
+      this.showIcon(firstDbId, objectInfo);
     } else {
       this.selectedModel = null;
       this.infoLatitude.innerText = "";
@@ -239,6 +257,11 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       this.infoId.innerText = "";
       this.infoPosition.innerText = "";
       this.infoRotation.innerText = "";
+      this.enabled = false;
+
+      if (this.infoCard) {
+        this.infoCard.remove();
+      }
     }
   }
 
@@ -296,6 +319,11 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
   }
 
   init() {
+    this.beeController.addGrid();
+    this.beeController.addWindDirection(1233);
+  }
+
+  initModel() {
     const humaProp = {
       id: "12A312",
       position: [10, 10, 0],
@@ -307,33 +335,33 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       humaProp.rotation
     );
 
-    const excavatorProps = {
-      id: "E1231A43",
-      position: [5, 10, 0],
-      rotation: [0, 0, 0],
-    };
-    this.beeController.addExcavator(
-      excavatorProps.id,
-      excavatorProps.position,
-      excavatorProps.rotation
-    );
+    // const excavatorProps = {
+    //   id: "E1231A43",
+    //   position: [5, 10, 0],
+    //   rotation: [0, 0, 0],
+    // };
+    // this.beeController.addExcavator(
+    //   excavatorProps.id,
+    //   excavatorProps.position,
+    //   excavatorProps.rotation
+    // );
 
-    const beaconProp = {
-      id: "E143231A43",
-      position: [-5, 10, 0],
-      rotation: [0, 0, 0],
-    };
-    this.beeController.addBeacon(
-      beaconProp.id,
-      beaconProp.position,
-      beaconProp.rotation
-    );
+    // const beaconProp = {
+    //   id: "E143231A43",
+    //   position: [-5, 10, 0],
+    //   rotation: [0, 0, 0],
+    // };
+    // this.beeController.addBeacon(
+    //   beaconProp.id,
+    //   beaconProp.position,
+    //   beaconProp.rotation
+    // );
 
-    this.beeController.addRestrictedArea(
-      this.resA.id,
-      this.resA.position,
-      this.resA.rotation
-    );
+    // this.beeController.addRestrictedArea(
+    //   this.resA.id,
+    //   this.resA.position,
+    //   this.resA.rotation
+    // );
 
     const resCust = {
       id: "E143231A43",
@@ -345,16 +373,87 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
         [121.52051, 25.07027],
         [121.52035, 25.07043],
       ],
-      height: 2,
+      height: 5,
     };
     const newCoords = this.coordinateConverter.geographicToCartesian2D(
       resCust.geoLocation
     );
 
-    this.beeController.addCustomRestrictedArea(resCust.id, newCoords);
+    this.beeController.addCustomRestrictedArea(
+      resCust.id,
+      newCoords,
+      resCust.height
+    );
+  }
 
-    this.beeController.addGrid();
-    this.beeController.addWindDirection(1233);
+  load() {
+    const updateIconsCallback = () => {
+      if (this.enabled) {
+        this.updateIcons();
+      }
+    };
+
+    this.viewer.addEventListener(
+      Autodesk.Viewing.CAMERA_CHANGE_EVENT,
+      updateIconsCallback
+    );
+    this.viewer.addEventListener(
+      Autodesk.Viewing.ISOLATE_EVENT,
+      updateIconsCallback
+    );
+    this.viewer.addEventListener(
+      Autodesk.Viewing.HIDE_EVENT,
+      updateIconsCallback
+    );
+    this.viewer.addEventListener(
+      Autodesk.Viewing.SHOW_EVENT,
+      updateIconsCallback
+    );
+  }
+
+  updateIcons() {
+    if (this.infoCard && this.posModel) {
+      const pos = this.viewer.worldToClient(this.posModel);
+
+      console.log(pos);
+      this.infoCard.style.left = `${Math.floor(
+        50 + pos.x - this.infoCard.offsetWidth / 2
+      )}px`;
+      this.infoCard.style.top = `${Math.floor(
+        50 + pos.y - this.infoCard.offsetWidth / 2
+      )}px`;
+      const id = this.infoCard.dataset.id;
+      console.log(this.viewer.isNodeVisible(id));
+      this.infoCard.style.display = this.viewer.isNodeVisible(id)
+        ? "block"
+        : "none";
+    }
+  }
+
+  showIcon(dbId, objectInfo) {
+    this.infoCard = document.createElement("div");
+    this.infoCard.setAttribute("class", "labelModel");
+    this.infoCard.setAttribute("data-id", `${dbId}`);
+
+    let infoData = document.createElement("div");
+    infoData.id = "infoData";
+    if (objectInfo) {
+      infoData.innerHTML = `
+      <div>ID: <span id="infoId">${objectInfo.id}</span></div>
+      <div>Position: <span id="infoPosition" >${objectInfo.position}</span></div>
+      <div>Rotation: <span id="infoRotation" >${objectInfo.rotation}</span></div>
+      <div>Latitude: <span id="infoLatitude" >${objectInfo.latitude}</span></div>
+      <div>Longitude: <span id="infoLongitude" class="info">${objectInfo.longitude}</span></div>
+      `;
+    }
+    this.infoCard.append(infoData);
+    // this.infoCard.innerText = `${dbId}`;
+    const viewerContainer = document.querySelector(
+      `#${this.viewer.clientContainer.id}`
+    );
+    viewerContainer.appendChild(this.infoCard);
+
+    this.updateIcons();
   }
 
   getDataUWB() {
@@ -779,12 +878,7 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
 
     transformToolLabel.innerText = "Transform Tool";
 
-    function setAttributes(el, attrs) {
-      for (let key in attrs) {
-        el.setAttribute(key, attrs[key]);
-      }
-    }
-    setAttributes(transformTool, {
+    this.setAttributes(transformTool, {
       type: "checkbox",
       id: "toggleTransformTool",
     });
@@ -794,6 +888,27 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
         this._enableTransformTool();
       } else {
         this._disableTransformTool();
+      }
+    });
+
+    const infoModel = document.createElement("input");
+    const infoModelLabel = document.createElement("label");
+
+    infoModelLabel.innerText = "Info Model";
+
+    this.setAttributes(infoModel, {
+      type: "checkbox",
+      id: "toggleInfoModel",
+    });
+
+    infoModel.addEventListener("change", () => {
+      const infoCard = document.querySelector("div.labelModel");
+      if (infoCard) {
+        if (infoModel.checked) {
+          infoCard.style.display = "block";
+        } else {
+          infoCard.style.display = "none";
+        }
       }
     });
 
@@ -856,7 +971,9 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       createAOA,
       deleteAOA,
       transformTool,
-      transformToolLabel
+      transformToolLabel,
+      infoModel,
+      infoModelLabel
     );
   }
 

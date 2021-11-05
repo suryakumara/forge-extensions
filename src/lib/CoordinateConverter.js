@@ -135,7 +135,7 @@ export class CoordinateConverter {
   };
 
   geographicToCartesian2D = (geoLocation) => {
-    console.log(geoLocation);
+
     let newCoordinateCartesian = [];
 
     for (let i = 0; i < geoLocation.length; i++) {

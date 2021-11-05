@@ -1,6 +1,24 @@
 /*!********************************************************************!*\
   !*** css ./node_modules/css-loader/dist/cjs.js!./src/css/main.css ***!
   \********************************************************************/
+.labelModel {
+  display: block;
+  position: absolute;
+  z-index: 100;
+  border: 2px solid #ccc;
+  background-color: #404040;
+  cursor: pointer;
+  border-radius: 10px;
+  padding: 10px;
+  width: 12rem;
+  height: 12rem;
+  color: white;
+}
+
+.labelModel:hover {
+  color: red;
+}
+
 .dockingPanel {
   background-image: url("http://localhost:3000/assets/images/png/bee_logo.png");
   background-size: 24px;
@@ -206,6 +224,10 @@
   right: 0;
   width: 300px;
   height: 300px;
+}
+
+#infoData {
+  font-size: 10px;
 }
 
 #infoPanel div {
