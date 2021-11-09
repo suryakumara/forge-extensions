@@ -22,10 +22,10 @@ export class BeeInventorModel {
         conserveMemory: false,
       });
 
-      const globalMaterial = new THREE.MeshPhongMaterial({
+      const globalMaterial = new THREE.MeshBasicMaterial({
         color: new THREE.Color(1, 0, 0),
         transparent: true,
-        opacity: 0.1,
+        opacity: 0.5,
       });
 
       const geoPoint = [];

@@ -2,9 +2,11 @@
 import { BeeInventorModel } from "./BeeInventorModel";
 import { CoordinateConverter } from "./CoordinateConverter";
 import { ForgeController } from "./ForgeController";
-import { TransformTool } from "./TransformTool";
-
-const TransformToolName = "xform-tool";
+import { EditableGeoJsonLayer } from "@nebula.gl/layers";
+import { DrawPolygonMode } from "@nebula.gl/edit-modes";
+import { Deck } from "@deck.gl/core";
+import { DarkMode } from "./ui-tools/DarkMode";
+import { TransformToolUI } from "./ui-tools/TransformToolUI";
 
 export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
   constructor(viewer, container, id, title, options) {
@@ -39,6 +41,10 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.containerUWB.className = "containerUWB";
     this.container.append(this.containerUWB);
 
+    this.containerGeneralTool = document.createElement("div");
+    this.containerGeneralTool.className = "generalTool";
+    this.container.append(this.containerGeneralTool);
+
     this.sceneBuilder = null;
     this.modelBuilder = null;
 
@@ -52,8 +58,8 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.selectedModelRotation = null;
     this.transformControlTx = null;
     this.isDragging = false;
-    this.hitPoint = null;
-    this._tool = null;
+
+    this.enabledIcon = false;
 
     this.aoa = {
       id: "4219",
@@ -153,6 +159,37 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.centralMarker
       .setLngLat([121.52045303099948, 25.069771049083982])
       .addTo(this.map);
+
+    // deckgl
+    this.containerDeckGl = document.createElement("canvas");
+    this.containerDeckGl.setAttribute("id", "deck");
+    const w = this.containerDeckGl.offsetWidth;
+    const h = this.containerDeckGl.offsetHeight;
+
+    this.viewerContainer.append(this.containerDeckGl);
+
+    const layers = this.getLayers();
+    const editableGeoJsonLayer = layers[0];
+    const INITIAL_VIEW_STATE = {
+      latitude: 25.069771049083982,
+      longitude: 121.52045303099948,
+      zoom: 15,
+      bearing: 0,
+      pitch: 0,
+    };
+
+    this.deck = new Deck({
+      initialViewState: INITIAL_VIEW_STATE,
+      canvas: "deck",
+      width: 300,
+      height: 300,
+      layers: layers,
+      controller: {
+        doubleClickZoom: false,
+      },
+      getCursor: editableGeoJsonLayer.getCursor.bind(editableGeoJsonLayer),
+    });
+
     this.load();
     this.init();
     this.initModel();
@@ -162,24 +199,68 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.setVisibility();
     this.updateInfoObject();
     this.setUpAOA();
+    const transformTool = new TransformToolUI(
+      this.viewer,
+      this.containerGeneralTool
+    );
+    transformTool.transformToolSetup();
+    const darkMode = new DarkMode(this.viewer, this.containerGeneralTool);
+    darkMode.darkModeToolSetup();
   }
 
-  _enableTransformTool() {
-    const controller = this.viewer.toolController;
-    if (!this._tool) {
-      this._tool = new TransformTool();
-      controller.registerTool(this._tool);
-    }
-    if (!controller.isToolActivated(TransformToolName)) {
-      controller.activateTool(TransformToolName);
-    }
-  }
+  getLayers() {
+    const COUNTRIES =
+      "https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_50m_admin_0_scale_rank.geojson"; //eslint-disable-line
+    let myFeatureCollection = {
+      type: "FeatureCollection",
+      features: [],
+    };
+    const layers = [
+      new EditableGeoJsonLayer({
+        id: "nebula",
+        data: myFeatureCollection,
+        selectedFeatureIndexes: [],
+        mode: DrawPolygonMode,
 
-  _disableTransformTool() {
-    const controller = this.viewer.toolController;
-    if (this._tool && controller.isToolActivated(TransformToolName)) {
-      controller.deactivateTool(TransformToolName);
-    }
+        // Styles
+        filled: true,
+        pointRadiusMinPixels: 2,
+        pointRadiusScale: 2000,
+        extruded: true,
+        getElevation: 1000,
+        getFillColor: [200, 0, 80, 180],
+
+        // Interactive props
+        pickable: true,
+        autoHighlight: true,
+
+        onEdit: ({ updatedData }) => {
+          myFeatureCollection = updatedData;
+          this.deck.setProps({ layers: this.getLayers() });
+          const features = myFeatureCollection.features[0];
+
+          if (features) {
+            console.log("yahoooo");
+            console.log(this.getLayers()[0]);
+            const resCust = {
+              id: "E143231A43sdfds",
+              geoLocation: [...features.geometry.coordinates[0]],
+              height: 5,
+            };
+            const newCoords = this.coordinateConverter.geographicToCartesian2D(
+              resCust.geoLocation
+            );
+            this.beeController.addCustomRestrictedArea(
+              resCust.id,
+              newCoords,
+              resCust.height
+            );
+          }
+        },
+      }),
+    ];
+
+    return layers;
   }
 
   onSelection(event) {
@@ -431,6 +512,8 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
   }
 
   showIcon(dbId, objectInfo) {
+    if (!this.enabledIcon) return;
+
     this.infoCard = document.createElement("div");
     this.infoCard.setAttribute("class", "labelModel");
     this.infoCard.setAttribute("data-id", `${dbId}`);
@@ -442,12 +525,19 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       <div>ID: <span id="infoId">${objectInfo.id}</span></div>
       <div>Position: <span id="infoPosition" >${objectInfo.position}</span></div>
       <div>Rotation: <span id="infoRotation" >${objectInfo.rotation}</span></div>
-      <div>Latitude: <span id="infoLatitude" >${objectInfo.latitude}</span></div>
-      <div>Longitude: <span id="infoLongitude" class="info">${objectInfo.longitude}</span></div>
+      <div>Lat: <span id="infoLatitude" >${objectInfo.latitude}</span></div>
+      <div>Long: <span id="infoLongitude" class="info">${objectInfo.longitude}</span></div>
+
       `;
+      // <div style="width: 50px; height: 50px; background-color: #fff; margin: 10px auto 0;">
+      //   <img
+      //     src="/assets/images/png/img_gps_dasloop_online.png"
+      //     style="max-width: 100%; max-height: 100%;"
+      //   />
+      // </div>;
     }
+
     this.infoCard.append(infoData);
-    // this.infoCard.innerText = `${dbId}`;
     const viewerContainer = document.querySelector(
       `#${this.viewer.clientContainer.id}`
     );
@@ -457,9 +547,7 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
   }
 
   getDataUWB() {
-    this.socket.on("UpdatePosition", (data) => {
-      // console.log(data);
-    });
+    this.socket.on("UpdatePosition", (data) => {});
 
     this.socket.on("UpdateUWB", (data) => {
       this.getDatasUWB(data);
@@ -615,6 +703,7 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       );
     }
   }
+
   setAttributes(el, attrs) {
     for (let key in attrs) {
       el.setAttribute(key, attrs[key]);
@@ -873,45 +962,6 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     });
     deleteAOA.innerText = "Delete";
 
-    const transformTool = document.createElement("input");
-    const transformToolLabel = document.createElement("label");
-
-    transformToolLabel.innerText = "Transform Tool";
-
-    this.setAttributes(transformTool, {
-      type: "checkbox",
-      id: "toggleTransformTool",
-    });
-
-    transformTool.addEventListener("change", () => {
-      if (transformTool.checked) {
-        this._enableTransformTool();
-      } else {
-        this._disableTransformTool();
-      }
-    });
-
-    const infoModel = document.createElement("input");
-    const infoModelLabel = document.createElement("label");
-
-    infoModelLabel.innerText = "Info Model";
-
-    this.setAttributes(infoModel, {
-      type: "checkbox",
-      id: "toggleInfoModel",
-    });
-
-    infoModel.addEventListener("change", () => {
-      const infoCard = document.querySelector("div.labelModel");
-      if (infoCard) {
-        if (infoModel.checked) {
-          infoCard.style.display = "block";
-        } else {
-          infoCard.style.display = "none";
-        }
-      }
-    });
-
     const angleSubmit = document.createElement("div");
     angleSubmit.className = "submit-setup";
     angleSubmit.append(labelRotation, inputRotation, submit);
@@ -967,14 +1017,7 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     });
     this.containerUWB.append(title);
     this.containerUWB.append(form);
-    this.containerUWB.append(
-      createAOA,
-      deleteAOA,
-      transformTool,
-      transformToolLabel,
-      infoModel,
-      infoModelLabel
-    );
+    this.containerUWB.append(createAOA, deleteAOA);
   }
 
   setVisibility() {
@@ -1012,7 +1055,7 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     up.applyMatrix4(matrix);
     nav.setView(pos, new THREE.Vector3(0, 0, 0));
     nav.setCameraUpVector(up);
-    let viewState = this.viewer.getState();
+    this.viewer.getState();
   };
 
   uninitialize() {
