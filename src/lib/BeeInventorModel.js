@@ -84,6 +84,7 @@ export class BeeInventorModel {
       modelNameOverride: "uwb",
       conserveMemory: false,
     });
+    console.log(modelBuilder);
     const globalMaterial = new THREE.MeshPhongMaterial({
       color: new THREE.Color(0.863, 0.078, 0.235),
       opacity: 0.8,
@@ -199,13 +200,13 @@ export class BeeInventorModel {
     const workerDBID = this.idToNumber(dbId);
     this.humanModel.dbId = parseInt(`${5002}${workerDBID}`);
 
-    const box = new THREE.Box3();
-    this.humanModel.geometry.computeBoundingBox();
-    const nodebBox = box
-      .copy(this.humanModel.geometry.boundingBox)
-      .applyMatrix4(this.humanModel.matrixWorld);
+    // const box = new THREE.Box3();
+    // this.humanModel.geometry.computeBoundingBox();
+    // const nodebBox = box
+    //   .copy(this.humanModel.geometry.boundingBox)
+    //   .applyMatrix4(this.humanModel.matrixWorld);
 
-    console.log(nodebBox.getCenter());
+    // console.log(nodebBox.getCenter());
     modelBuilder.addMesh(this.humanModel);
 
     const workerModel = modelBuilder.model;

@@ -5,8 +5,14 @@ import { ForgeController } from "./ForgeController";
 import { EditableGeoJsonLayer } from "@nebula.gl/layers";
 import { DrawPolygonMode } from "@nebula.gl/edit-modes";
 import { Deck } from "@deck.gl/core";
-import { DarkMode } from "./ui-tools/DarkMode";
-import { TransformToolUI } from "./ui-tools/TransformToolUI";
+import { DarkMode } from "./tools/DarkMode";
+import { TransformToolUI } from "./tools/TransformTools";
+import { InfoCardUI } from "./tools/InfoCard";
+import { AOAtools } from "./tools/AOA";
+import { Building } from "./tools/Building";
+import { RotateCamera } from "./tools/RotateCamera";
+import { InitialModel } from "./InitialSetupModel";
+import { MainConverter } from "./MainConverter";
 
 export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
   constructor(viewer, container, id, title, options) {
@@ -37,9 +43,9 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
   `;
     this.container.append(this.containerInfo);
 
-    this.containerUWB = document.createElement("div");
-    this.containerUWB.className = "containerUWB";
-    this.container.append(this.containerUWB);
+    this.containerAOA = document.createElement("div");
+    this.containerAOA.className = "containerAOA";
+    this.container.append(this.containerAOA);
 
     this.containerGeneralTool = document.createElement("div");
     this.containerGeneralTool.className = "generalTool";
@@ -56,10 +62,6 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.started = false;
     this.selectedModel = null;
     this.selectedModelRotation = null;
-    this.transformControlTx = null;
-    this.isDragging = false;
-
-    this.enabledIcon = false;
 
     this.aoa = {
       id: "4219",
@@ -132,11 +134,13 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     };
 
     this.beeController = new BeeInventorModel(this.viewer, this.options);
+
     this.Controller = new ForgeController(this.viewer, this.options);
     this.coordinateConverter = new CoordinateConverter(
       25.069771049083982,
       121.52045303099948
     );
+
     this.markerMap = new Map();
     this.socket = io("http://localhost:3333");
 
@@ -163,8 +167,6 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     // deckgl
     this.containerDeckGl = document.createElement("canvas");
     this.containerDeckGl.setAttribute("id", "deck");
-    const w = this.containerDeckGl.offsetWidth;
-    const h = this.containerDeckGl.offsetHeight;
 
     this.viewerContainer.append(this.containerDeckGl);
 
@@ -190,22 +192,51 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       getCursor: editableGeoJsonLayer.getCursor.bind(editableGeoJsonLayer),
     });
 
-    this.load();
     this.init();
-    this.initModel();
+
+    // init Model
+    this.initModel = new InitialModel(this.viewer, this.options, {
+      converter: this.coordinateConverter,
+      controllerModel: this.beeController,
+    });
+    this.initModel.setupInitialModel();
+
     this.getDataUWB();
-    this.updateBuildingPosition();
-    this.updateLatLong();
-    this.setVisibility();
+    // Building Setup
+    this.geoBuilding = this.coordinateConverter.getCenter();
+    this.buildingTool = new Building(this.viewer, this.containerBuilding);
+    this.buildingTool.buildingSetup(this.geoBuilding);
+    this.buildingTool.buildingVisibility();
+
     this.updateInfoObject();
-    this.setUpAOA();
-    const transformTool = new TransformToolUI(
+    // AOA Setup
+    this.setupAOA = new AOAtools(this.viewer, this.containerAOA, this.options, {
+      controllerModel: this.beeController,
+    });
+    this.setupAOA.AOAsetup(this.selectedModel);
+
+    // InfoCard Setup
+    this.infoCardTool = new InfoCardUI(this.viewer, this.containerGeneralTool);
+    this.infoCardTool.infoCardSetup();
+    this.infoCardTool.updateIconEvent(this.posModel);
+
+    // Transform Setup
+    this.transformTool = new TransformToolUI(
       this.viewer,
       this.containerGeneralTool
     );
-    transformTool.transformToolSetup();
-    const darkMode = new DarkMode(this.viewer, this.containerGeneralTool);
-    darkMode.darkModeToolSetup();
+    this.transformTool.transformToolSetup();
+
+    // Dark Mode Setup
+    this.darkMode = new DarkMode(this.viewer, this.containerGeneralTool);
+    this.darkMode.darkModeToolSetup();
+
+    // Rotate Camera Setup
+    this.rotateCamera = new RotateCamera(
+      this.viewer,
+      this.containerGeneralTool
+    );
+    this.rotateCamera.rotateCameraSetup();
   }
 
   getLayers() {
@@ -266,9 +297,7 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
   onSelection(event) {
     const selSet = event.selections;
     const firstSel = selSet[0];
-    if (this.infoCard) {
-      this.infoCard.remove();
-    }
+    this.infoCardTool.clearInfoCard();
 
     if (firstSel) {
       const listdbIds = firstSel.dbIdArray;
@@ -285,7 +314,7 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       model.getPlacementTransform().decompose(translation, rotation, scale);
       const rotatedMatrix = model.getPlacementTransform();
 
-      const rotationValueZ = this.getRotationModel(rotatedMatrix);
+      const rotationValueZ = MainConverter.getRotationModel(rotatedMatrix);
       this.selectedModelRotation = rotationValueZ;
 
       let dbIds = firstSel.dbIdArray;
@@ -305,13 +334,12 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       );
 
       this.posModel = bounds.getCenter();
-      this.enabled = true;
 
       const positionGeo = this.coordinateConverter.cartesianToGeographic(
         this.posModel.x,
         this.posModel.y
       );
-      const idModel = this.getTypeOfModel(firstDbId.toString());
+      const idModel = MainConverter.getTypeOfModel(firstDbId.toString());
 
       const objectInfo = {
         id: idModel.idDevice,
@@ -330,7 +358,8 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       this.infoRotation.innerText = objectInfo.rotation;
       // put on the last
 
-      this.showIcon(firstDbId, objectInfo);
+      this.infoCardTool.showIcon(firstDbId, objectInfo, this.posModel);
+      this.setupAOA.AOASelected(this.selectedModel);
     } else {
       this.selectedModel = null;
       this.infoLatitude.innerText = "";
@@ -338,40 +367,9 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       this.infoId.innerText = "";
       this.infoPosition.innerText = "";
       this.infoRotation.innerText = "";
-      this.enabled = false;
-
-      if (this.infoCard) {
-        this.infoCard.remove();
-      }
+      this.infoCardTool.clearInfoCard();
     }
   }
-
-  getRotationModel(rotatedMatrix) {
-    const Vx = rotatedMatrix.elements[0];
-    const Vy = rotatedMatrix.elements[1];
-
-    let radians;
-    if (Vx || Vy) {
-      radians = Math.atan2(Vy, Vx);
-    } else {
-      radians = 0;
-    }
-
-    if (radians < 0) {
-      radians += 2 * Math.PI;
-    }
-    const radiansToDegree = Math.round(radians * (180 / Math.PI));
-    return { angle: radiansToDegree };
-  }
-
-  quaternionToAngle = (rotatedMatrix) => {
-    let vec = new THREE.Quaternion();
-    vec.setFromRotationMatrix(rotatedMatrix);
-    const _w = vec._w;
-    let angleRadian = 2 * Math.acos(_w);
-    const angle = (angleRadian * 180) / Math.PI;
-    return { angle };
-  };
 
   updateInfoObject() {
     let infoPanel = document.createElement("div");
@@ -386,17 +384,12 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     `;
 
     this.containerInfo.append(infoPanel);
-    this.infoId = document.getElementById("infoId");
 
+    this.infoId = document.getElementById("infoId");
     this.infoPosition = document.getElementById("infoPosition");
     this.infoRotation = document.getElementById("infoRotation");
     this.infoLatitude = document.getElementById("infoLatitude");
     this.infoLongitude = document.getElementById("infoLongitude");
-  }
-
-  idToNumber(id) {
-    const numberId = parseInt(id.replace(/[^0-9]/g, ""));
-    return numberId;
   }
 
   init() {
@@ -404,151 +397,7 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.beeController.addWindDirection(1233);
   }
 
-  initModel() {
-    const humaProp = {
-      id: "12A312",
-      position: [10, 10, 0],
-      rotation: [0, 0, 0],
-    };
-    this.beeController.addNewWorker(
-      humaProp.id,
-      humaProp.position,
-      humaProp.rotation
-    );
-
-    // const excavatorProps = {
-    //   id: "E1231A43",
-    //   position: [5, 10, 0],
-    //   rotation: [0, 0, 0],
-    // };
-    // this.beeController.addExcavator(
-    //   excavatorProps.id,
-    //   excavatorProps.position,
-    //   excavatorProps.rotation
-    // );
-
-    // const beaconProp = {
-    //   id: "E143231A43",
-    //   position: [-5, 10, 0],
-    //   rotation: [0, 0, 0],
-    // };
-    // this.beeController.addBeacon(
-    //   beaconProp.id,
-    //   beaconProp.position,
-    //   beaconProp.rotation
-    // );
-
-    // this.beeController.addRestrictedArea(
-    //   this.resA.id,
-    //   this.resA.position,
-    //   this.resA.rotation
-    // );
-
-    const resCust = {
-      id: "E143231A43",
-      geoLocation: [
-        [121.51998, 25.07044],
-        [121.51981, 25.0702],
-        [121.52, 25.06996],
-        [121.5202, 25.07019],
-        [121.52051, 25.07027],
-        [121.52035, 25.07043],
-      ],
-      height: 5,
-    };
-    const newCoords = this.coordinateConverter.geographicToCartesian2D(
-      resCust.geoLocation
-    );
-
-    this.beeController.addCustomRestrictedArea(
-      resCust.id,
-      newCoords,
-      resCust.height
-    );
-  }
-
-  load() {
-    const updateIconsCallback = () => {
-      if (this.enabled) {
-        this.updateIcons();
-      }
-    };
-
-    this.viewer.addEventListener(
-      Autodesk.Viewing.CAMERA_CHANGE_EVENT,
-      updateIconsCallback
-    );
-    this.viewer.addEventListener(
-      Autodesk.Viewing.ISOLATE_EVENT,
-      updateIconsCallback
-    );
-    this.viewer.addEventListener(
-      Autodesk.Viewing.HIDE_EVENT,
-      updateIconsCallback
-    );
-    this.viewer.addEventListener(
-      Autodesk.Viewing.SHOW_EVENT,
-      updateIconsCallback
-    );
-  }
-
-  updateIcons() {
-    if (this.infoCard && this.posModel) {
-      const pos = this.viewer.worldToClient(this.posModel);
-
-      console.log(pos);
-      this.infoCard.style.left = `${Math.floor(
-        50 + pos.x - this.infoCard.offsetWidth / 2
-      )}px`;
-      this.infoCard.style.top = `${Math.floor(
-        50 + pos.y - this.infoCard.offsetWidth / 2
-      )}px`;
-      const id = this.infoCard.dataset.id;
-      console.log(this.viewer.isNodeVisible(id));
-      this.infoCard.style.display = this.viewer.isNodeVisible(id)
-        ? "block"
-        : "none";
-    }
-  }
-
-  showIcon(dbId, objectInfo) {
-    if (!this.enabledIcon) return;
-
-    this.infoCard = document.createElement("div");
-    this.infoCard.setAttribute("class", "labelModel");
-    this.infoCard.setAttribute("data-id", `${dbId}`);
-
-    let infoData = document.createElement("div");
-    infoData.id = "infoData";
-    if (objectInfo) {
-      infoData.innerHTML = `
-      <div>ID: <span id="infoId">${objectInfo.id}</span></div>
-      <div>Position: <span id="infoPosition" >${objectInfo.position}</span></div>
-      <div>Rotation: <span id="infoRotation" >${objectInfo.rotation}</span></div>
-      <div>Lat: <span id="infoLatitude" >${objectInfo.latitude}</span></div>
-      <div>Long: <span id="infoLongitude" class="info">${objectInfo.longitude}</span></div>
-
-      `;
-      // <div style="width: 50px; height: 50px; background-color: #fff; margin: 10px auto 0;">
-      //   <img
-      //     src="/assets/images/png/img_gps_dasloop_online.png"
-      //     style="max-width: 100%; max-height: 100%;"
-      //   />
-      // </div>;
-    }
-
-    this.infoCard.append(infoData);
-    const viewerContainer = document.querySelector(
-      `#${this.viewer.clientContainer.id}`
-    );
-    viewerContainer.appendChild(this.infoCard);
-
-    this.updateIcons();
-  }
-
   getDataUWB() {
-    this.socket.on("UpdatePosition", (data) => {});
-
     this.socket.on("UpdateUWB", (data) => {
       this.getDatasUWB(data);
     });
@@ -556,33 +405,6 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.socket.on("UpdateWorker", (data) => {
       // this.getDatas(data);
     });
-  }
-
-  getTypeOfModel(dbId) {
-    // model only receive int number
-    let idDevice = "";
-    const typeModel = dbId.slice(0, 4);
-    switch (typeModel) {
-      case "5001":
-        idDevice = dbId.replace(/^.{4}/g, "AOA-");
-        break;
-      case "5002":
-        idDevice = dbId.replace(/^.{4}/g, "Worker-");
-        break;
-      case "5003":
-        idDevice = dbId.replace(/^.{4}/g, "RA-");
-        break;
-      case "5004":
-        idDevice = dbId.replace(/^.{4}/g, "EXT-");
-        break;
-      case "5005":
-        idDevice = dbId.replace(/^.{4}/g, "BCN-");
-        break;
-      default:
-        idDevice = dbId;
-        break;
-    }
-    return { idDevice };
   }
 
   getDatasUWB(datas) {
@@ -710,358 +532,9 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     }
   }
 
-  updateBuildingPosition() {
-    const form = document.createElement("form");
-    form.setAttribute("id", "myform");
-    const containerInput = document.createElement("div");
-    containerInput.className = "containerInput";
-    const title = document.createElement("div");
-    title.className = "title-form";
-    title.innerText = "Building Setup";
-    const inputPosX = document.createElement("input");
-    const inputPosY = document.createElement("input");
-    const inputPosZ = document.createElement("input");
-    const inputRotation = document.createElement("input");
-    const labelRotation = document.createElement("label");
-    const labelX = document.createElement("label");
-    const labelY = document.createElement("label");
-    const labelZ = document.createElement("label");
-    this.setAttributes(labelX, { for: "x" });
-    labelX.innerText = "x";
-    this.setAttributes(labelY, { for: "y" });
-    labelY.innerText = "y";
-    this.setAttributes(labelZ, { for: "z" });
-    labelZ.innerText = "z";
-    this.setAttributes(inputRotation, { for: "angle" });
-    labelRotation.innerText = "d";
-    this.setAttributes(inputRotation, {
-      name: "angle",
-      id: "angle",
-      type: "number",
-      value: 0,
-      class: "input-rotation",
-    });
-
-    this.setAttributes(inputPosX, {
-      name: "x",
-      id: "x",
-      type: "number",
-      value: 0,
-      class: "input-position",
-    });
-    this.setAttributes(inputPosY, {
-      name: "y",
-      id: "y",
-      type: "number",
-      value: 0,
-      class: "input-position",
-    });
-    this.setAttributes(inputPosZ, {
-      name: "z",
-      id: "z",
-      type: "number",
-      value: 0,
-      class: "input-position",
-    });
-    const submit = document.createElement("input");
-    this.setAttributes(submit, {
-      type: "submit",
-      class: "submit-position",
-    });
-    submit.innerText = "Submit";
-    containerInput.append(
-      labelX,
-      inputPosX,
-      labelY,
-      inputPosY,
-      labelZ,
-      inputPosZ
-    );
-    const angleSubmit = document.createElement("div");
-    angleSubmit.className = "submit-setup";
-    angleSubmit.append(labelRotation, inputRotation, submit);
-    form.append(containerInput, angleSubmit);
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      this.valueX = form.elements.namedItem("x").value;
-      this.valueY = form.elements.namedItem("y").value;
-      this.valueZ = form.elements.namedItem("z").value;
-      this.valueRot = form.elements.namedItem("angle").value;
-      if (
-        !isNaN(this.valueX) &&
-        this.valueX !== "" &&
-        this.valueX !== undefined &&
-        !isNaN(this.valueY) &&
-        this.valueY !== "" &&
-        this.valueY !== undefined &&
-        !isNaN(this.valueZ) &&
-        this.valueZ !== "" &&
-        this.valueZ !== undefined &&
-        !isNaN(this.valueRot) &&
-        this.valueRot !== "" &&
-        this.valueRot !== undefined
-      ) {
-        this.translation = new THREE.Matrix4().makeTranslation(
-          this.valueX,
-          this.valueY,
-          this.valueZ
-        );
-        const angleRadian = CoordinateConverter.degreeToRadian(this.valueRot);
-        let rotate = new THREE.Matrix4().makeRotationZ(angleRadian);
-        this.viewer.model.setPlacementTransform(
-          this.translation.multiply(rotate)
-        );
-      }
-    });
-    this.containerBuilding.append(title);
-    this.containerBuilding.append(form);
-  }
-
-  updateBuildingRotation() {
-    const formRotation = document.createElement("form");
-    formRotation.setAttribute("id", "myformRotation");
-    const containerRotation = document.createElement("div");
-    containerRotation.className = "containerRotation";
-    const inputAngle = document.createElement("input");
-    const labelAngle = document.createElement("label");
-    const titleAngle = document.createElement("h6");
-    const latLongCenter = document.createElement("div");
-    latLongCenter.classList.add("latlong-bee");
-
-    const position = this.coordinateConverter.getCenter();
-    latLongCenter.innerText = `Lat: ${position.latitude}, Long: ${position.longitude}`;
-    titleAngle.innerText = "Rotation";
-    titleAngle.className = "title-rotation";
-    this.setAttributes(labelAngle, { for: "angle" });
-    labelAngle.innerText = "angle";
-    this.setAttributes(inputAngle, {
-      name: "angle",
-      id: "angle",
-      type: "number",
-      value: 0,
-      class: "input-rotation",
-    });
-    const submitAngle = document.createElement("input");
-    this.setAttributes(submitAngle, {
-      type: "submit",
-      class: "submit-rotation",
-    });
-    submitAngle.innerText = "Submit";
-    containerRotation.append(inputAngle, labelAngle, submitAngle);
-    formRotation.append(titleAngle, containerRotation);
-    formRotation.addEventListener("submit", (e) => {
-      e.preventDefault();
-      this.angleRotation = formRotation.elements.namedItem("angle").value;
-      if (
-        !isNaN(this.angleRotation) &&
-        this.angleRotation !== "" &&
-        this.angleRotation !== undefined
-      ) {
-        const angleRadian = CoordinateConverter.degreeToRadian(
-          this.angleRotation
-        );
-
-        this.rotation = new THREE.Matrix4().makeRotationZ(angleRadian);
-        if (this.translation) {
-          this.viewer.model.setPlacementTransform(
-            this.rotation.multiply(this.translation)
-          );
-        } else {
-          this.viewer.model.setPlacementTransform(this.rotation);
-        }
-      }
-    });
-    this.containerBuilding.append(formRotation);
-    this.containerBuilding.append(latLongCenter);
-  }
-
-  updateLatLong() {
-    const latLongCenter = document.createElement("div");
-    latLongCenter.classList.add("latlong-bee");
-    const position = this.coordinateConverter.getCenter();
-    latLongCenter.innerText = `Lat: ${position.latitude}, Long: ${position.longitude}`;
-    this.containerBuilding.append(latLongCenter);
-  }
-
-  setUpAOA() {
-    const form = document.createElement("form");
-    form.setAttribute("id", "myform");
-    const containerInput = document.createElement("div");
-    containerInput.className = "containerInput";
-    const title = document.createElement("div");
-    title.className = "title-form";
-    title.innerText = "AOA Setup";
-    const inputPosX = document.createElement("input");
-    const inputPosY = document.createElement("input");
-    const inputPosZ = document.createElement("input");
-    const inputRotation = document.createElement("input");
-    const labelRotation = document.createElement("label");
-    const labelX = document.createElement("label");
-    const labelY = document.createElement("label");
-    const labelZ = document.createElement("label");
-    this.setAttributes(labelX, { for: "x" });
-    labelX.innerText = "x";
-    this.setAttributes(labelY, { for: "y" });
-    labelY.innerText = "y";
-    this.setAttributes(labelZ, { for: "z" });
-    labelZ.innerText = "z";
-    this.setAttributes(inputRotation, { for: "angle" });
-    labelRotation.innerText = "d";
-    this.setAttributes(inputRotation, {
-      name: "angle",
-      id: "angle",
-      type: "number",
-      value: 0,
-      class: "input-rotation",
-    });
-
-    this.setAttributes(inputPosX, {
-      name: "x",
-      id: "x",
-      type: "number",
-      value: 0,
-      class: "input-position",
-    });
-    this.setAttributes(inputPosY, {
-      name: "y",
-      id: "y",
-      type: "number",
-      value: 0,
-      class: "input-position",
-    });
-    this.setAttributes(inputPosZ, {
-      name: "z",
-      id: "z",
-      type: "number",
-      value: 0,
-      class: "input-position",
-    });
-    const submit = document.createElement("input");
-    this.setAttributes(submit, {
-      type: "submit",
-      class: "submit-position",
-    });
-    submit.innerText = "Submit";
-    containerInput.append(
-      labelX,
-      inputPosX,
-      labelY,
-      inputPosY,
-      labelZ,
-      inputPosZ
-    );
-    const createAOA = document.createElement("button");
-    this.setAttributes(createAOA, {
-      class: "create-aoa",
-    });
-    createAOA.innerText = "Add";
-
-    const deleteAOA = document.createElement("button");
-    this.setAttributes(deleteAOA, {
-      class: "delete-aoa",
-    });
-    deleteAOA.innerText = "Delete";
-
-    const angleSubmit = document.createElement("div");
-    angleSubmit.className = "submit-setup";
-    angleSubmit.append(labelRotation, inputRotation, submit);
-    form.append(containerInput, angleSubmit);
-
-    createAOA.addEventListener("click", () => {
-      this.beeController.addUWB(
-        this.aoa.id,
-        this.aoa.position,
-        this.aoa.rotation
-      );
-    });
-
-    deleteAOA.addEventListener("click", () => {
-      this.viewer.impl.unloadModel(this.selectedModel);
-    });
-
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      this.valueAOA_X = form.elements.namedItem("x").value;
-      this.valueAOA_Y = form.elements.namedItem("y").value;
-      this.valueAOA_Z = form.elements.namedItem("z").value;
-      this.valueAOA_Rotation = form.elements.namedItem("angle").value;
-      if (
-        !isNaN(this.valueAOA_X) &&
-        this.valueAOA_X !== "" &&
-        this.valueAOA_X !== undefined &&
-        !isNaN(this.valueAOA_Y) &&
-        this.valueAOA_Y !== "" &&
-        this.valueAOA_Y !== undefined &&
-        !isNaN(this.valueAOA_Z) &&
-        this.valueAOA_Z !== "" &&
-        this.valueAOA_Z !== undefined &&
-        !isNaN(this.valueAOA_Rotation) &&
-        this.valueAOA_Rotation !== "" &&
-        this.valueAOA_Rotation !== undefined
-      ) {
-        if (this.selectedModel) {
-          const translation = new THREE.Matrix4().makeTranslation(
-            this.valueAOA_X,
-            this.valueAOA_Y,
-            this.valueAOA_Z
-          );
-          const angleRadian = CoordinateConverter.degreeToRadian(
-            this.valueAOA_Rotation
-          );
-          const rotationAOA = new THREE.Matrix4().makeRotationZ(angleRadian);
-          this.selectedModel.setPlacementTransform(
-            translation.multiply(rotationAOA)
-          );
-        }
-      }
-    });
-    this.containerUWB.append(title);
-    this.containerUWB.append(form);
-    this.containerUWB.append(createAOA, deleteAOA);
-  }
-
-  setVisibility() {
-    const buttonVisibility = document.createElement("div");
-    buttonVisibility.innerText = "Show/Hide Building";
-    buttonVisibility.classList.add("button-bee");
-    buttonVisibility.addEventListener("click", async () => {
-      this.enabled = !this.enabled;
-      if (this.enabled) {
-        const instanceTree = this.viewer.model.getData().instanceTree;
-        const rootId = instanceTree.getRootId();
-        this.viewer.hide(rootId);
-      } else {
-        const instanceTree = this.viewer.model.getData().instanceTree;
-        const rootId = instanceTree.getRootId();
-        this.viewer.show(rootId);
-      }
-    });
-    this.containerBuilding.append(buttonVisibility);
-  }
-
-  rotateCamera = () => {
-    if (this.started) {
-      requestAnimationFrame(this.rotateCamera);
-    }
-
-    const nav = this.viewer.navigation;
-    const up = nav.getCameraUpVector();
-    const axis = new THREE.Vector3(0, 0, 1);
-    const speed = (10.0 * Math.PI) / 180;
-    const matrix = new THREE.Matrix4().makeRotationAxis(axis, speed * 0.01);
-
-    let pos = nav.getPosition();
-    pos.applyMatrix4(matrix);
-    up.applyMatrix4(matrix);
-    nav.setView(pos, new THREE.Vector3(0, 0, 0));
-    nav.setCameraUpVector(up);
-    this.viewer.getState();
-  };
-
   uninitialize() {
     console.info("uninitialize");
     this.socket.close();
-    this._disableTransformTool();
     this.viewer.removeEventListener(
       Autodesk.Viewing.AGGREGATE_SELECTION_CHANGED_EVENT,
       this.onSelection

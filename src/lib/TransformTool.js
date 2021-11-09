@@ -11,6 +11,7 @@ export class TransformTool extends Autodesk.Viewing.ToolInterface {
 
     this._fragments = [];
     this._startPosition = new THREE.Vector3();
+    this._startTransform = null;
     this._onCameraChange = this._onCameraChange.bind(this);
     this._onControlsChange = this._onControlsChange.bind(this);
     this._onSelectionChange = this._onSelectionChange.bind(this);
@@ -119,13 +120,17 @@ export class TransformTool extends Autodesk.Viewing.ToolInterface {
   }
 
   _onControlsChange(ev) {
+    const offset = new THREE.Vector3().subVectors(
+      this._controls.position,
+      this._startPosition
+    );
+
     if (this.selectedModel) {
-      const posTransform = this._controls.position;
-      let tr = this.selectedModel.getPlacementTransform();
-      tr.elements[12] = posTransform.x;
-      tr.elements[13] = posTransform.y;
-      tr.elements[14] = posTransform.z;
-      this.selectedModel.setPlacementTransform(tr);
+      const xform = this._startTransform.clone();
+      xform.elements[12] += offset.x;
+      xform.elements[13] += offset.y;
+      xform.elements[14] += offset.z;
+      this.selectedModel.setPlacementTransform(xform);
 
       this._viewer.impl.invalidate(true, true, true);
     }
@@ -161,6 +166,7 @@ export class TransformTool extends Autodesk.Viewing.ToolInterface {
       const position = bounds.getCenter();
       this._controls.setPosition(position);
       this._startPosition.copy(this._controls.position);
+      this._startTransform = model.getPlacementTransform().clone();
       this._controls.visible = true;
     } else {
       this._controls.visible = false;

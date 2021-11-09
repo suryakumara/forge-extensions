@@ -1,6 +1,7 @@
 import { TransformTool } from "../TransformTool";
 
 const TransformToolName = "xform-tool";
+
 export class TransformToolUI {
   constructor(viewer, container) {
     this.viewer = viewer;
