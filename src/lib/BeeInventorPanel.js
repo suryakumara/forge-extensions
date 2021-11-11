@@ -13,6 +13,7 @@ import { Building } from "./tools/Building";
 import { RotateCamera } from "./tools/RotateCamera";
 import { InitialModel } from "./InitialSetupModel";
 import { MainConverter } from "./MainConverter";
+import { RestrictedArea } from "./tools/RestrictedArea";
 
 export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
   constructor(viewer, container, id, title, options) {
@@ -51,6 +52,10 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.containerGeneralTool.className = "generalTool";
     this.container.append(this.containerGeneralTool);
 
+    this.containerRestrictedArea = document.createElement("div");
+    this.containerRestrictedArea.className = "generalTool";
+    this.container.append(this.containerRestrictedArea);
+
     this.sceneBuilder = null;
     this.modelBuilder = null;
 
@@ -68,11 +73,7 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       position: [0, 0, 2],
       rotation: [0, 0, 0],
     };
-    this.resA = {
-      id: "12312",
-      position: [0, 10, 0],
-      rotation: [0, 0, 0],
-    };
+
     this.viewerContainer = document.querySelector(
       `#${this.viewer.clientContainer.id}`
     );
@@ -237,6 +238,12 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       this.containerGeneralTool
     );
     this.rotateCamera.rotateCameraSetup();
+
+    this.restrictedArea = new RestrictedArea(
+      this.viewer,
+      this.containerRestrictedArea
+    );
+    this.restrictedArea.restrictedAreaSetup();
   }
 
   getLayers() {
@@ -357,8 +364,9 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       this.infoPosition.innerText = objectInfo.position;
       this.infoRotation.innerText = objectInfo.rotation;
       // put on the last
-
+      this.restrictedArea.RASelected(model);
       this.infoCardTool.showIcon(firstDbId, objectInfo, this.posModel);
+      this.infoCardTool.selectedModel(model);
       this.setupAOA.AOASelected(this.selectedModel);
     } else {
       this.selectedModel = null;
@@ -409,6 +417,7 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
 
   getDatasUWB(datas) {
     const datasAOA = datas;
+    console.log(datasAOA.position.degree);
     const AOA = this.beeController.objects.get(this.aoa.id);
     if (AOA) {
       const AOAproperty = AOA.getPlacementTransform();
@@ -422,7 +431,7 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
         rotation: {
           x: 0,
           y: 0,
-          z: this.getRotationModel(AOAproperty).angle,
+          z: MainConverter.getRotationModel(AOAproperty).angle,
         },
       };
 

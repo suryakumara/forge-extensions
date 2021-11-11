@@ -4,6 +4,7 @@ export class InfoCardUI {
     this.container = container;
     this.infoCard = null;
     this.enabledIcon = false;
+    this.selectedModelCard = null;
   }
 
   updateIconEvent() {
@@ -104,11 +105,34 @@ export class InfoCardUI {
       this.infoCard.style.top = `${Math.floor(
         50 + pos.y - this.infoCard.offsetWidth / 2
       )}px`;
-      const id = this.infoCard.dataset.id;
-      this.infoCard.style.display = this.viewer.isNodeVisible(id)
-        ? "block"
-        : "none";
+      if (this.selectedModelCard) {
+        const modelOutContainer = this.checkIfOutofContainer();
+        this.infoCard.style.display = modelOutContainer ? "block" : "none";
+      }
     }
+  }
+
+  checkIfOutofContainer() {
+    // this.viewer.addEventListener(Autodesk.Viewing.CAMERA_CHANGE_EVENT, () => {
+    if (!this.selectedModelCard) {
+      return;
+    }
+
+    const camera = this.viewer.getCamera();
+    const matrix = new THREE.Matrix4().multiplyMatrices(
+      camera.projectionMatrix,
+      camera.matrixWorldInverse
+    );
+    const frustum = new THREE.Frustum().setFromMatrix(matrix);
+    const bbox = this.selectedModelCard.getBoundingBox();
+    console.log("Model in the view?", frustum.intersectsBox(bbox));
+    const isModelInContainer = frustum.intersectsBox(bbox);
+    return isModelInContainer;
+    // });
+  }
+
+  selectedModel(model) {
+    this.selectedModelCard = model;
   }
 
   clearInfoCard() {

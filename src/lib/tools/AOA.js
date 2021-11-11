@@ -1,4 +1,3 @@
-import { BeeInventorModel } from "../BeeInventorModel";
 import { CoordinateConverter } from "../CoordinateConverter";
 
 export class AOAtools {
@@ -101,7 +100,7 @@ export class AOAtools {
     form.append(containerInput, angleSubmit);
 
     createAOA.addEventListener("click", () => {
-      this.beeController.addUWB(
+      this.beeController.addAOA(
         this.aoa.id,
         this.aoa.position,
         this.aoa.rotation

@@ -1,6 +1,4 @@
 export class ForgeController {
-  objects;
-
   constructor(viewer, options) {
     this.viewer = viewer;
     this.objects = new Map();

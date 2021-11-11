@@ -12,39 +12,43 @@ export class InitialModel {
       position: [10, 10, 0],
       rotation: [0, 0, 0],
     };
+
     this.beeController.addNewWorker(
       humaProp.id,
       humaProp.position,
       humaProp.rotation
     );
 
-    // const excavatorProps = {
-    //   id: "E1231A43",
-    //   position: [5, 10, 0],
+    const excavatorProps = {
+      id: "E1231A43",
+      position: [5, 10, 0],
+      rotation: [0, 0, 0],
+    };
+
+    this.beeController.addExcavator(
+      excavatorProps.id,
+      excavatorProps.position,
+      excavatorProps.rotation
+    );
+
+    const beaconProp = {
+      id: "E143231A43",
+      position: [-5, 10, 0],
+      rotation: [0, 0, 0],
+    };
+    this.beeController.addBeacon(
+      beaconProp.id,
+      beaconProp.position,
+      beaconProp.rotation
+    );
+
+    // const resA = {
+    //   id: "12312",
+    //   position: [0, 10, 0],
     //   rotation: [0, 0, 0],
     // };
-    // this.beeController.addExcavator(
-    //   excavatorProps.id,
-    //   excavatorProps.position,
-    //   excavatorProps.rotation
-    // );
 
-    // const beaconProp = {
-    //   id: "E143231A43",
-    //   position: [-5, 10, 0],
-    //   rotation: [0, 0, 0],
-    // };
-    // this.beeController.addBeacon(
-    //   beaconProp.id,
-    //   beaconProp.position,
-    //   beaconProp.rotation
-    // );
-
-    // this.beeController.addRestrictedArea(
-    //   this.resA.id,
-    //   this.resA.position,
-    //   this.resA.rotation
-    // );
+    // this.beeController.addRestrictedArea(resA.id, resA.position, resA.rotation);
 
     const resCust = {
       id: "E143231A43",

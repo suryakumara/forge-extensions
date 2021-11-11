@@ -2,7 +2,7 @@ export class BeeInventorModel {
   constructor(viewer, options) {
     this.viewer = viewer;
     this.options = options;
-    this.uwb = null;
+    this.aoa = null;
     this.model = null;
     this.humanModel = null;
     this.restrictedArea = null;
@@ -76,15 +76,14 @@ export class BeeInventorModel {
     return numberId;
   }
 
-  addUWB = async (dbId, position, rotation) => {
+  addAOA = async (dbId, position, rotation) => {
     const sceneBuilder = await this.viewer.loadExtension(
       "Autodesk.Viewing.SceneBuilder"
     );
     const modelBuilder = await sceneBuilder.addNewModel({
-      modelNameOverride: "uwb",
+      modelNameOverride: "aoa",
       conserveMemory: false,
     });
-    console.log(modelBuilder);
     const globalMaterial = new THREE.MeshPhongMaterial({
       color: new THREE.Color(0.863, 0.078, 0.235),
       opacity: 0.8,
@@ -103,48 +102,48 @@ export class BeeInventorModel {
     textMesh.matrix.setPosition(new THREE.Vector3(0, 0, 0.7));
     textMesh.matrix.scale(new THREE.Vector3(0.2, 0.2, 0.2));
 
-    const uwbMesh = new THREE.Mesh(box, globalMaterial);
-    uwbMesh.matrix.scale(new THREE.Vector3(0.5, 0.5, 0.5));
+    const aoaMesh = new THREE.Mesh(box, globalMaterial);
+    aoaMesh.matrix.scale(new THREE.Vector3(0.5, 0.5, 0.5));
 
-    const uwbDir1 = new THREE.Mesh(torus, globalMaterial);
+    const aoaDir1 = new THREE.Mesh(torus, globalMaterial);
     const radians = 90 * (Math.PI / 180);
-    uwbDir1.matrix.makeRotationX(radians);
-    uwbDir1.matrix.makeRotationY(radians);
-    uwbDir1.matrix.setPosition(new THREE.Vector3(0.2, 0, 0));
-    uwbDir1.matrix.scale(new THREE.Vector3(0.2, 0.2, 0.2));
+    aoaDir1.matrix.makeRotationX(radians);
+    aoaDir1.matrix.makeRotationY(radians);
+    aoaDir1.matrix.setPosition(new THREE.Vector3(0.2, 0, 0));
+    aoaDir1.matrix.scale(new THREE.Vector3(0.2, 0.2, 0.2));
 
-    const uwbDir2 = new THREE.Mesh(torus, globalMaterial);
+    const aoaDir2 = new THREE.Mesh(torus, globalMaterial);
 
-    uwbDir2.matrix.makeRotationX(radians);
-    uwbDir2.matrix.makeRotationY(radians);
-    uwbDir2.matrix.setPosition(new THREE.Vector3(0.3, 0, 0));
-    uwbDir2.matrix.scale(new THREE.Vector3(0.3, 0.3, 0.3));
+    aoaDir2.matrix.makeRotationX(radians);
+    aoaDir2.matrix.makeRotationY(radians);
+    aoaDir2.matrix.setPosition(new THREE.Vector3(0.3, 0, 0));
+    aoaDir2.matrix.scale(new THREE.Vector3(0.3, 0.3, 0.3));
 
-    const uwbDir3 = new THREE.Mesh(torus, globalMaterial);
+    const aoaDir3 = new THREE.Mesh(torus, globalMaterial);
 
-    uwbDir3.matrix.makeRotationX(radians);
-    uwbDir3.matrix.makeRotationY(radians);
-    uwbDir3.matrix.setPosition(new THREE.Vector3(0.4, 0, 0));
-    uwbDir3.matrix.scale(new THREE.Vector3(0.4, 0.4, 0.4));
+    aoaDir3.matrix.makeRotationX(radians);
+    aoaDir3.matrix.makeRotationY(radians);
+    aoaDir3.matrix.setPosition(new THREE.Vector3(0.4, 0, 0));
+    aoaDir3.matrix.scale(new THREE.Vector3(0.4, 0.4, 0.4));
 
-    let uwbGeo = new THREE.Geometry();
-    uwbGeo.merge(textMesh.geometry, textMesh.matrix);
-    uwbGeo.merge(uwbMesh.geometry, uwbMesh.matrix);
-    uwbGeo.merge(uwbDir1.geometry, uwbDir1.matrix);
-    uwbGeo.merge(uwbDir2.geometry, uwbDir2.matrix);
-    uwbGeo.merge(uwbDir3.geometry, uwbDir3.matrix);
-    uwbGeo.computeVertexNormals();
+    let aoaGeo = new THREE.Geometry();
+    aoaGeo.merge(textMesh.geometry, textMesh.matrix);
+    aoaGeo.merge(aoaMesh.geometry, aoaMesh.matrix);
+    aoaGeo.merge(aoaDir1.geometry, aoaDir1.matrix);
+    aoaGeo.merge(aoaDir2.geometry, aoaDir2.matrix);
+    aoaGeo.merge(aoaDir3.geometry, aoaDir3.matrix);
+    aoaGeo.computeVertexNormals();
 
-    const uwbBuff = new THREE.BufferGeometry().fromGeometry(uwbGeo);
-    this.uwb = new THREE.Mesh(uwbBuff, globalMaterial);
+    const aoaBuff = new THREE.BufferGeometry().fromGeometry(aoaGeo);
+    this.aoa = new THREE.Mesh(aoaBuff, globalMaterial);
 
-    // this.uwb.matrix.makeRotationZ(radians);
-    this.uwb.userData.id = dbId;
-    const uwbDBID = this.idToNumber(dbId);
-    this.uwb.dbId = parseInt(`${5001}${uwbDBID}`);
+    // this.aoa.matrix.makeRotationZ(radians);
+    this.aoa.userData.id = dbId;
+    const aoaDBID = this.idToNumber(dbId);
+    this.aoa.dbId = parseInt(`${5001}${aoaDBID}`);
 
-    modelBuilder.addMesh(this.uwb);
-    const uwbModel = modelBuilder.model;
+    modelBuilder.addMesh(this.aoa);
+    const aoaModel = modelBuilder.model;
 
     let pos = new THREE.Matrix4();
     pos.makeRotationZ(rotation[1] ?? 0 * (Math.PI / 180));
@@ -152,9 +151,9 @@ export class BeeInventorModel {
       new THREE.Vector3(position[0] ?? 0, position[1] ?? 0, position[2] ?? 2)
     );
 
-    uwbModel.setPlacementTransform(pos);
+    aoaModel.setPlacementTransform(pos);
 
-    this.objects.set(dbId, uwbModel);
+    this.objects.set(dbId, aoaModel);
   };
 
   addNewWorker = async (dbId, position, rotation) => {
