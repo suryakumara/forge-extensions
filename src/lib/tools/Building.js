@@ -7,78 +7,73 @@ export class Building {
   }
 
   buildingSetup(geoBuilding) {
-    const form = document.createElement("form");
-    form.setAttribute("id", "myform");
     const containerInput = document.createElement("div");
-    containerInput.className = "containerInput";
-    const title = document.createElement("div");
-    title.className = "title-form";
-    title.innerText = "Building Setup";
-    const inputPosX = document.createElement("input");
-    const inputPosY = document.createElement("input");
-    const inputPosZ = document.createElement("input");
-    const inputRotation = document.createElement("input");
-    const labelRotation = document.createElement("label");
-    const labelX = document.createElement("label");
-    const labelY = document.createElement("label");
-    const labelZ = document.createElement("label");
-    this.setAttributes(labelX, { for: "x" });
-    labelX.innerText = "x";
-    this.setAttributes(labelY, { for: "y" });
-    labelY.innerText = "y";
-    this.setAttributes(labelZ, { for: "z" });
-    labelZ.innerText = "z";
-    this.setAttributes(inputRotation, { for: "angle" });
-    labelRotation.innerText = "d";
-    this.setAttributes(inputRotation, {
-      name: "angle",
-      id: "angle",
-      type: "number",
-      value: 0,
-      class: "input-rotation",
-    });
+    containerInput.innerHTML = `
+    <button type="button" class="collapsible">Building Setup</button>
+    <form class="content" id="form-building">
+      <div>
+        <input
+          type="number"
+          name="x"
+          id="x"
+          type="number"
+          value="0"
+          class="input-position"
+        />
+        <label for="x">x</label>
+      </div>
+      <div>
+        <input
+          type="number"
+          name="y"
+          id="y"
+          type="number"
+          value="0"
+          class="input-position"
+        />
+        <label for="y">y</label>
+      </div>
+      <div>
+        <input
+          type="number"
+          name="z"
+          id="z"
+          type="number"
+          value="0"
+          class="input-position"
+        />
+        <label for="z">z</label>
+      </div>
+      <div>
+        <input
+          type="number"
+          name="angle"
+          id="angle"
+          type="number"
+          value="0"
+          class="input-position"
+        />
+        <label for="angle">angle</label>
+      </div>
+      <button type="submit" id>set</button>
+    </form>
+    `;
 
-    this.setAttributes(inputPosX, {
-      name: "x",
-      id: "x",
-      type: "number",
-      value: 0,
-      class: "input-position",
-    });
-    this.setAttributes(inputPosY, {
-      name: "y",
-      id: "y",
-      type: "number",
-      value: 0,
-      class: "input-position",
-    });
-    this.setAttributes(inputPosZ, {
-      name: "z",
-      id: "z",
-      type: "number",
-      value: 0,
-      class: "input-position",
-    });
-    const submit = document.createElement("input");
-    this.setAttributes(submit, {
-      type: "submit",
-      class: "submit-position",
-    });
-    submit.innerText = "Submit";
-    containerInput.append(
-      labelX,
-      inputPosX,
-      labelY,
-      inputPosY,
-      labelZ,
-      inputPosZ
-    );
-    const angleSubmit = document.createElement("div");
-    angleSubmit.className = "submit-setup";
-    angleSubmit.append(labelRotation, inputRotation, submit);
+    const coll = document.getElementsByClassName("collapsible");
+    for (let i = 0; i < coll.length; i++) {
+      coll[i].addEventListener("click", function () {
+        coll[i].classList.toggle("active");
+        const content = coll[i].nextElementSibling;
+        if (content.style.display === "block") {
+          content.style.display = "none";
+        } else {
+          content.style.display = "block";
+        }
+      });
+    }
 
-    form.append(containerInput, angleSubmit);
-    form.addEventListener("submit", (e) => {
+    const formBuilding = document.getElementById("form-building");
+    formBuilding.addEventListener("submit", (e) => {
       e.preventDefault();
       this.valueX = form.elements.namedItem("x").value;
       this.valueY = form.elements.namedItem("y").value;
@@ -115,7 +110,7 @@ export class Building {
     latLongCenter.classList.add("latlong-bee");
     const position = geoBuilding;
     latLongCenter.innerText = `Lat: ${position.latitude}, Long: ${position.longitude}`;
-    this.container.append(title, form, latLongCenter);
+    this.container.append(containerInput, latLongCenter);
   }
 
   buildingVisibility() {

@@ -1,7 +1,7 @@
 /* mapboxgl */
+import "../css/main.css";
 import { BeeInventorModel } from "./BeeInventorModel";
 import { CoordinateConverter } from "./CoordinateConverter";
-import { ForgeController } from "./ForgeController";
 import { EditableGeoJsonLayer } from "@nebula.gl/layers";
 import { DrawPolygonMode } from "@nebula.gl/edit-modes";
 import { Deck } from "@deck.gl/core";
@@ -134,17 +134,13 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       }
     };
 
+    this.markerMap = new Map();
+    this.socket = io("http://localhost:3333");
     this.beeController = new BeeInventorModel(this.viewer, this.options);
-
-    this.Controller = new ForgeController(this.viewer, this.options);
     this.coordinateConverter = new CoordinateConverter(
       25.069771049083982,
       121.52045303099948
     );
-
-    this.markerMap = new Map();
-    this.socket = io("http://localhost:3333");
-
     // mapbox
     this.containerMapbox = document.createElement("div");
     this.containerMapbox.setAttribute("id", "map");
@@ -278,8 +274,6 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
           const features = myFeatureCollection.features[0];
 
           if (features) {
-            console.log("yahoooo");
-            console.log(this.getLayers()[0]);
             const resCust = {
               id: "E143231A43sdfds",
               geoLocation: [...features.geometry.coordinates[0]],
@@ -417,7 +411,6 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
 
   getDatasUWB(datas) {
     const datasAOA = datas;
-    console.log(datasAOA.position.degree);
     const AOA = this.beeController.objects.get(this.aoa.id);
     if (AOA) {
       const AOAproperty = AOA.getPlacementTransform();
