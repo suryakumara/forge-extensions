@@ -6,79 +6,81 @@ export class Building {
     this.container = container;
   }
 
-  buildingSetup(geoBuilding) {
+  buildingSetup() {
     const containerInput = document.createElement("div");
     containerInput.innerHTML = `
+    <div class="container-bee">
     <button type="button" class="collapsible">Building Setup</button>
-    <form class="content" id="form-building">
-      <div>
-        <input
-          type="number"
-          name="x"
-          id="x"
-          type="number"
-          value="0"
-          class="input-position"
-        />
-        <label for="x">x</label>
+    <div class="content">
+      <div class="latlong-bee">
+        <div id="lat-bee">Lat :</div>
+        <div id="long-bee">Long :</div>
       </div>
-      <div>
-        <input
-          type="number"
-          name="y"
-          id="y"
-          type="number"
-          value="0"
-          class="input-position"
-        />
-        <label for="y">y</label>
+
+      <form id="form-building">
+        <div>
+          <input
+            type="number"
+            name="x"
+            id="x"
+            value="0"
+            class="input-position"
+          />
+          <label for="x">x (m)</label>
+        </div>
+        <div>
+          <input
+            type="number"
+            name="y"
+            id="y"
+            value="0"
+            class="input-position"
+          />
+          <label for="y">y (m)</label>
+        </div>
+        <div>
+          <input
+            type="number"
+            name="z"
+            id="z"
+            value="0"
+            class="input-position"
+          />
+          <label for="z">z (m)</label>
+        </div>
+
+        <div>
+          <input
+            type="number"
+            name="angle"
+            id="angle"
+            value="0"
+            class="input-position"
+          />
+          <label for="angle">angle (&deg)</label>
+        </div>
+        <button type="submit" class="button-bee">SET</button>
+      </form>
+      <div class="button-bee" id="button-show-hide-building">
+        SHOW/HIDE BUILDING
       </div>
-      <div>
-        <input
-          type="number"
-          name="z"
-          id="z"
-          type="number"
-          value="0"
-          class="input-position"
-        />
-        <label for="z">z</label>
-      </div>
-      <div>
-        <input
-          type="number"
-          name="angle"
-          id="angle"
-          type="number"
-          value="0"
-          class="input-position"
-        />
-        <label for="angle">angle</label>
-      </div>
-      <button type="submit" id>set</button>
-    </form>
+    </div>
+  </div>
     `;
+    this.container.append(containerInput);
+  }
 
-    const coll = document.getElementsByClassName("collapsible");
-    for (let i = 0; i < coll.length; i++) {
-      coll[i].addEventListener("click", function () {
-        coll[i].classList.toggle("active");
-        const content = coll[i].nextElementSibling;
-        if (content.style.display === "block") {
-          content.style.display = "none";
-        } else {
-          content.style.display = "block";
-        }
-      });
-    }
-
+  updateBuilding() {
     const formBuilding = document.getElementById("form-building");
+
+    if (!formBuilding) return;
+
     formBuilding.addEventListener("submit", (e) => {
       e.preventDefault();
-      this.valueX = form.elements.namedItem("x").value;
-      this.valueY = form.elements.namedItem("y").value;
-      this.valueZ = form.elements.namedItem("z").value;
-      this.valueRot = form.elements.namedItem("angle").value;
+      this.valueX = formBuilding.elements.namedItem("x").value;
+      this.valueY = formBuilding.elements.namedItem("y").value;
+      this.valueZ = formBuilding.elements.namedItem("z").value;
+      this.valueRot = formBuilding.elements.namedItem("angle").value;
       if (
         !isNaN(this.valueX) &&
         this.valueX !== "" &&
@@ -105,12 +107,35 @@ export class Building {
         );
       }
     });
+  }
 
-    const latLongCenter = document.createElement("div");
-    latLongCenter.classList.add("latlong-bee");
-    const position = geoBuilding;
-    latLongCenter.innerText = `Lat: ${position.latitude}, Long: ${position.longitude}`;
-    this.container.append(containerInput, latLongCenter);
+  updateLatLong(position) {
+    const lat = document.getElementById("lat-bee");
+    const long = document.getElementById("long-bee");
+
+    if (!lat || !long) return;
+
+    lat.innerText = `Lat : ${position.latitude}`;
+    long.innerText = `Long: ${position.longitude}`;
+  }
+
+  updateVisibility() {
+    const buttonVisibility = document.getElementById(
+      "button-show-hide-building"
+    );
+    if (!buttonVisibility) return;
+    buttonVisibility.addEventListener("click", async () => {
+      this.enabled = !this.enabled;
+      if (this.enabled) {
+        const instanceTree = this.viewer.model.getData().instanceTree;
+        const rootId = instanceTree.getRootId();
+        this.viewer.hide(rootId);
+      } else {
+        const instanceTree = this.viewer.model.getData().instanceTree;
+        const rootId = instanceTree.getRootId();
+        this.viewer.show(rootId);
+      }
+    });
   }
 
   buildingVisibility() {
@@ -131,64 +156,6 @@ export class Building {
     });
     this.container.append(buttonVisibility);
   }
-
-  //   updateBuildingRotation() {
-  //     const formRotation = document.createElement("form");
-  //     formRotation.setAttribute("id", "myformRotation");
-  //     const containerRotation = document.createElement("div");
-  //     containerRotation.className = "containerRotation";
-  //     const inputAngle = document.createElement("input");
-  //     const labelAngle = document.createElement("label");
-  //     const titleAngle = document.createElement("h6");
-  //     const latLongCenter = document.createElement("div");
-  //     latLongCenter.classList.add("latlong-bee");
-
-  //     const position = this.coordinateConverter.getCenter();
-  //     latLongCenter.innerText = `Lat: ${position.latitude}, Long: ${position.longitude}`;
-  //     titleAngle.innerText = "Rotation";
-  //     titleAngle.className = "title-rotation";
-  //     this.setAttributes(labelAngle, { for: "angle" });
-  //     labelAngle.innerText = "angle";
-  //     this.setAttributes(inputAngle, {
-  //       name: "angle",
-  //       id: "angle",
-  //       type: "number",
-  //       value: 0,
-  //       class: "input-rotation",
-  //     });
-  //     const submitAngle = document.createElement("input");
-  //     this.setAttributes(submitAngle, {
-  //       type: "submit",
-  //       class: "submit-rotation",
-  //     });
-  //     submitAngle.innerText = "Submit";
-  //     containerRotation.append(inputAngle, labelAngle, submitAngle);
-  //     formRotation.append(titleAngle, containerRotation);
-  //     formRotation.addEventListener("submit", (e) => {
-  //       e.preventDefault();
-  //       this.angleRotation = formRotation.elements.namedItem("angle").value;
-  //       if (
-  //         !isNaN(this.angleRotation) &&
-  //         this.angleRotation !== "" &&
-  //         this.angleRotation !== undefined
-  //       ) {
-  //         const angleRadian = CoordinateConverter.degreeToRadian(
-  //           this.angleRotation
-  //         );
-
-  //         this.rotation = new THREE.Matrix4().makeRotationZ(angleRadian);
-  //         if (this.translation) {
-  //           this.viewer.model.setPlacementTransform(
-  //             this.rotation.multiply(this.translation)
-  //           );
-  //         } else {
-  //           this.viewer.model.setPlacementTransform(this.rotation);
-  //         }
-  //       }
-  //     });
-  //     this.containerBuilding.append(formRotation);
-  //     this.containerBuilding.append(latLongCenter);
-  //   }
 
   setAttributes(el, attrs) {
     for (let key in attrs) {

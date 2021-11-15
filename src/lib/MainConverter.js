@@ -1,7 +1,7 @@
 export class MainConverter {
   static getTypeOfModel(dbId) {
     // model only receive int number
-    // thus, after clicked the selected model need to convert and give an ID
+    // tThus, after clicked the selected model need to convert and give an ID
     let idDevice = "";
     const typeModel = dbId.slice(0, 4);
     switch (typeModel) {

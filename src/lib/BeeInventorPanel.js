@@ -14,6 +14,7 @@ import { RotateCamera } from "./tools/RotateCamera";
 import { InitialModel } from "./InitialSetupModel";
 import { MainConverter } from "./MainConverter";
 import { RestrictedArea } from "./tools/RestrictedArea";
+import { ObjectInfo } from "./tools/ObjectInfo";
 
 export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
   constructor(viewer, container, id, title, options) {
@@ -25,7 +26,7 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.container.style.cssText = `
       top: 10px;
       left: 10px;
-      width: auto;
+      width: 300px;
       padding: 10px;
       height: 500px;
       resize: auto;
@@ -37,27 +38,28 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
 
     this.containerInfo = document.createElement("div");
     this.containerInfo.className = "containerInfo";
-    this.containerInfo.style.cssText = `
-    margin-top: 1rem;
-    padding: 0 0.2rem;
-    border: 0.5px solid #E5A600;
-  `;
     this.container.append(this.containerInfo);
 
     this.containerAOA = document.createElement("div");
     this.containerAOA.className = "containerAOA";
     this.container.append(this.containerAOA);
 
-    this.containerGeneralTool = document.createElement("div");
-    this.containerGeneralTool.className = "generalTool";
-    this.container.append(this.containerGeneralTool);
-
     this.containerRestrictedArea = document.createElement("div");
-    this.containerRestrictedArea.className = "generalTool";
+    this.containerRestrictedArea.className = "containerRA";
     this.container.append(this.containerRestrictedArea);
 
+    const genTool = document.createElement("div");
+    genTool.className = "generalTool";
+    genTool.innerHTML = `
+    <div class="container-bee">
+       <button type="button" class="collapsible">General Tool</button>
+       <div class="content" id="containerGeneralTool"></div>
+    </div>
+    `;
+    this.container.append(genTool);
+    this.containerGeneralTool = document.getElementById("containerGeneralTool");
+
     this.sceneBuilder = null;
-    this.modelBuilder = null;
 
     this.infoId = null;
     this.infoPosition = null;
@@ -77,22 +79,6 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.viewerContainer = document.querySelector(
       `#${this.viewer.clientContainer.id}`
     );
-
-    // modelBuilder for custom Autodesk Forge
-    this.viewer
-      .loadExtension("Autodesk.Viewing.SceneBuilder")
-      .then((builder) => {
-        this.sceneBuilder = builder;
-        return this.sceneBuilder.addNewModel({
-          modelNameOverride: "BeeModel",
-          conserveMemory: false,
-        });
-      })
-      .then((builder) => {
-        this.modelBuilder = builder;
-
-        console.log("modelBuilder Created.");
-      });
 
     this.onSelection = this.onSelection.bind(this);
     this.viewer.addEventListener(
@@ -202,15 +188,22 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     // Building Setup
     this.geoBuilding = this.coordinateConverter.getCenter();
     this.buildingTool = new Building(this.viewer, this.containerBuilding);
-    this.buildingTool.buildingSetup(this.geoBuilding);
-    this.buildingTool.buildingVisibility();
+    this.buildingTool.buildingSetup();
+    this.buildingTool.updateBuilding();
+    this.buildingTool.updateLatLong(this.geoBuilding);
+    this.buildingTool.updateVisibility();
 
-    this.updateInfoObject();
+    // Object Info
+
+    this.objectInfo = new ObjectInfo(this.viewer, this.containerInfo);
+    this.objectInfo.objectInfoSetup();
+
     // AOA Setup
     this.setupAOA = new AOAtools(this.viewer, this.containerAOA, this.options, {
       controllerModel: this.beeController,
     });
     this.setupAOA.AOAsetup(this.selectedModel);
+    this.setupAOA.AOAexistence();
 
     // InfoCard Setup
     this.infoCardTool = new InfoCardUI(this.viewer, this.containerGeneralTool);
@@ -240,6 +233,24 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       this.containerRestrictedArea
     );
     this.restrictedArea.restrictedAreaSetup();
+    this.restrictedArea.updateREstricted();
+    this.collapseButton();
+  }
+
+  collapseButton() {
+    const coll = document.getElementsByClassName("collapsible");
+    if (!coll) return;
+    for (let i = 0; i < coll.length; i++) {
+      coll[i].addEventListener("click", function () {
+        coll[i].classList.toggle("activesetup");
+        const content = coll[i].nextElementSibling;
+        if (content.style.display === "block") {
+          content.style.display = "none";
+        } else {
+          content.style.display = "block";
+        }
+      });
+    }
   }
 
   getLayers() {
@@ -335,7 +346,6 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       );
 
       this.posModel = bounds.getCenter();
-
       const positionGeo = this.coordinateConverter.cartesianToGeographic(
         this.posModel.x,
         this.posModel.y
@@ -352,11 +362,8 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
         longitude: positionGeo.longitude,
       };
 
-      this.infoId.innerText = objectInfo.id;
-      this.infoLatitude.innerText = objectInfo.latitude;
-      this.infoLongitude.innerText = objectInfo.longitude;
-      this.infoPosition.innerText = objectInfo.position;
-      this.infoRotation.innerText = objectInfo.rotation;
+      this.objectInfo.updateInfo(objectInfo);
+
       // put on the last
       this.restrictedArea.RASelected(model);
       this.infoCardTool.showIcon(firstDbId, objectInfo, this.posModel);
@@ -364,34 +371,9 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       this.setupAOA.AOASelected(this.selectedModel);
     } else {
       this.selectedModel = null;
-      this.infoLatitude.innerText = "";
-      this.infoLongitude.innerText = "";
-      this.infoId.innerText = "";
-      this.infoPosition.innerText = "";
-      this.infoRotation.innerText = "";
+      this.objectInfo.clearInfo();
       this.infoCardTool.clearInfoCard();
     }
-  }
-
-  updateInfoObject() {
-    let infoPanel = document.createElement("div");
-    infoPanel.id = "infoPanel";
-    infoPanel.innerHTML = `
-    <div >Objet Info</div>
-    <div>ID: <span id="infoId"></span></div>
-    <div>Position: <span id="infoPosition" ></span></div>
-    <div>Rotation: <span id="infoRotation" ></span></div>
-    <div>Latitude: <span id="infoLatitude" ></span></div>
-    <div>Longitude: <span id="infoLongitude" class="info"></span></div>
-    `;
-
-    this.containerInfo.append(infoPanel);
-
-    this.infoId = document.getElementById("infoId");
-    this.infoPosition = document.getElementById("infoPosition");
-    this.infoRotation = document.getElementById("infoRotation");
-    this.infoLatitude = document.getElementById("infoLatitude");
-    this.infoLongitude = document.getElementById("infoLongitude");
   }
 
   init() {
@@ -463,11 +445,7 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     );
 
     const beeObjects = this.beeController.objects;
-    if (
-      !beeObjects.has(datas.id) &&
-      this.modelBuilder &&
-      !this.markerMap.has(datas.id)
-    ) {
+    if (!beeObjects.has(datas.id) && !this.markerMap.has(datas.id)) {
       this.beeController.addNewWorker(datas.id, datas.position);
 
       const el = document.createElement("div");

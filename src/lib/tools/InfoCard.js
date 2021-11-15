@@ -77,14 +77,7 @@ export class InfoCardUI {
       <div>Rotation: <span id="infoRotation" >${objectInfo.rotation}</span></div>
       <div>Lat: <span id="infoLatitude" >${objectInfo.latitude}</span></div>
       <div>Long: <span id="infoLongitude" class="info">${objectInfo.longitude}</span></div>
-
       `;
-      // <div style="width: 50px; height: 50px; background-color: #fff; margin: 10px auto 0;">
-      //   <img
-      //     src="/assets/images/png/img_gps_dasloop_online.png"
-      //     style="max-width: 100%; max-height: 100%;"
-      //   />
-      // </div>;
     }
 
     this.infoCard.append(infoData);

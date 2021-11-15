@@ -6,96 +6,72 @@ export class RestrictedArea {
   }
 
   restrictedAreaSetup() {
-    const form = document.createElement("form");
-    form.setAttribute("id", "myform");
-    const containerInput = document.createElement("div");
-    containerInput.className = "containerInput";
-    const title = document.createElement("div");
-    title.className = "title-form";
-    title.innerText = "Restricted Area Setup";
-    const inputPosX = document.createElement("input");
-    const inputPosY = document.createElement("input");
-    const inputPosZ = document.createElement("input");
-    const inputHeight = document.createElement("input");
-    const inputRotation = document.createElement("input");
-    const labelRotation = document.createElement("label");
-    const labelX = document.createElement("label");
-    const labelY = document.createElement("label");
-    const labelZ = document.createElement("label");
-    const labelHeight = document.createElement("label");
-    this.setAttributes(labelX, { for: "x" });
-    labelX.innerText = "x";
-    this.setAttributes(labelY, { for: "y" });
-    labelY.innerText = "y";
-    this.setAttributes(labelZ, { for: "z" });
-    labelZ.innerText = "z";
-    this.setAttributes(inputRotation, { for: "angle" });
-    labelRotation.innerText = "d";
-    this.setAttributes(labelHeight, { for: "h" });
-    labelHeight.innerText = "H";
+    const restrictedArea = document.createElement("div");
+    restrictedArea.innerHTML = `
+    <div class="container-bee">
+    <button type="button" class="collapsible">Restricted Area Setup</button>
+    <div class="content">
+      <form id="form-edit-restricted">
+        <div>
+          <input
+            type="number"
+            name="x"
+            id="x"
+            value="0"
+            class="input-position"
+          />
+          <label for="x">x (m)</label>
+        </div>
+        <div>
+          <input
+            type="number"
+            name="y"
+            id="y"
+            value="0"
+            class="input-position"
+          />
+          <label for="y">y (m)</label>
+        </div>
+        <div>
+          <input
+            type="number"
+            name="z"
+            id="z"
+            value="0"
+            class="input-position"
+          />
+          <label for="z">z (m)</label>
+        </div>
+        <div>
+          <input
+            type="number"
+            name="height"
+            id="height"
+            value="0"
+            class="input-position"
+          />
+          <label for="angle">height (m)</label>
+        </div>
+        <button type="submit" class="button-bee">SET</button>
+      </form>
+    </div>
+  </div>
+    `;
 
-    this.setAttributes(inputHeight, {
-      name: "h",
-      id: "h",
-      type: "number",
-      value: 0,
-      class: "input-height",
-    });
+    this.container.append(restrictedArea);
+  }
 
-    this.setAttributes(inputRotation, {
-      name: "angle",
-      id: "angle",
-      type: "number",
-      value: 0,
-      class: "input-rotation",
-    });
+  updateREstricted() {
+    const formRestrictedArea = document.getElementById("form-edit-restricted");
+    if (!formRestrictedArea) return;
 
-    this.setAttributes(inputPosX, {
-      name: "x",
-      id: "x",
-      type: "number",
-      value: 0,
-      class: "input-position",
-    });
-    this.setAttributes(inputPosY, {
-      name: "y",
-      id: "y",
-      type: "number",
-      value: 0,
-      class: "input-position",
-    });
-    this.setAttributes(inputPosZ, {
-      name: "z",
-      id: "z",
-      type: "number",
-      value: 0,
-      class: "input-position",
-    });
-
-    const submit = document.createElement("input");
-    this.setAttributes(submit, {
-      type: "submit",
-      class: "submit-position",
-    });
-    submit.innerText = "Set";
-    containerInput.append(
-      labelX,
-      inputPosX,
-      labelY,
-      inputPosY,
-      labelZ,
-      inputPosZ,
-      labelHeight,
-      inputHeight
-    );
-
-    form.addEventListener("submit", (e) => {
+    formRestrictedArea.addEventListener("submit", (e) => {
       e.preventDefault();
-      this.valueRA_X = form.elements.namedItem("x").value;
-      this.valueRA_Y = form.elements.namedItem("y").value;
-      this.valueRA_Z = form.elements.namedItem("z").value;
-      this.valueRA_H = form.elements.namedItem("h").value;
-      console.log(this.valueRA_H);
+      this.valueRA_X = formRestrictedArea.elements.namedItem("x").value;
+      this.valueRA_Y = formRestrictedArea.elements.namedItem("y").value;
+      this.valueRA_Z = formRestrictedArea.elements.namedItem("z").value;
+      this.valueRA_H = formRestrictedArea.elements.namedItem("height").value;
+
       if (
         !isNaN(this.valueRA_X) &&
         this.valueRA_X !== "" &&
@@ -126,9 +102,6 @@ export class RestrictedArea {
         }
       }
     });
-
-    form.append(containerInput, submit);
-    this.container.append(title, form);
   }
 
   RASelected(model) {

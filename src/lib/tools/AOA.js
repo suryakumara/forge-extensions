@@ -16,107 +16,115 @@ export class AOAtools {
   }
 
   AOAsetup() {
-    const form = document.createElement("form");
-    form.setAttribute("id", "myform");
-    const containerInput = document.createElement("div");
-    containerInput.className = "containerInput";
-    const title = document.createElement("div");
-    title.className = "title-form";
-    title.innerText = "AOA Setup";
-    const inputPosX = document.createElement("input");
-    const inputPosY = document.createElement("input");
-    const inputPosZ = document.createElement("input");
-    const inputRotation = document.createElement("input");
-    const labelRotation = document.createElement("label");
-    const labelX = document.createElement("label");
-    const labelY = document.createElement("label");
-    const labelZ = document.createElement("label");
-    this.setAttributes(labelX, { for: "x" });
-    labelX.innerText = "x";
-    this.setAttributes(labelY, { for: "y" });
-    labelY.innerText = "y";
-    this.setAttributes(labelZ, { for: "z" });
-    labelZ.innerText = "z";
-    this.setAttributes(inputRotation, { for: "angle" });
-    labelRotation.innerText = "d";
-    this.setAttributes(inputRotation, {
-      name: "angle",
-      id: "angle",
-      type: "number",
-      value: 0,
-      class: "input-rotation",
+    const aoaContainer = document.createElement("div");
+    aoaContainer.innerHTML = `
+    <div class="container-bee">
+    <button type="button" class="collapsible">AOA Setup</button>
+    <div class="content">
+      <div class="aoa-bee">
+        <form id="form-add-aoa">
+          <input
+            type="text"
+            name="aoa-id"
+            id="aoa-id"
+            class="input-position"
+          />
+          <label for="aoa-id">aoa-tag</label>
+          <button class="button-bee-aoa aoa-config" id="create-aoa">
+            ADD
+          </button>
+        </form>
+        <button class="button-bee-aoa aoa-config" id="delete-aoa">DELETE</button>
+      </div>
+      <form id="form-edit-aoa">
+        <div>
+          <input
+            type="number"
+            name="x"
+            id="x"
+            value="0"
+            class="input-position"
+          />
+          <label for="x">x (m)</label>
+        </div>
+        <div>
+          <input
+            type="number"
+            name="y"
+            id="y"
+            value="0"
+            class="input-position"
+          />
+          <label for="y">y (m)</label>
+        </div>
+        <div>
+          <input
+            type="number"
+            name="z"
+            id="z"
+            value="0"
+            class="input-position"
+          />
+          <label for="z">z (m)</label>
+        </div>
+        <div>
+          <input
+            type="number"
+            name="angle"
+            id="angle"
+            value="0"
+            class="input-position"
+          />
+          <label for="angle">angle (&deg)</label>
+        </div>
+        <button type="submit" class="button-bee">SET</button>
+      </form>
+    </div>
+  </div>
+    `;
+    this.container.append(aoaContainer);
+  }
+
+  AOAexistence() {
+    const formCreateAOA = document.getElementById("form-add-aoa");
+    if (!formCreateAOA) return;
+
+    formCreateAOA.addEventListener("submit", (e) => {
+      e.preventDefault();
+      this.id_AOA = formCreateAOA.elements.namedItem("aoa-id").value;
+      if (this.id_AOA !== "" && this.id_AOA !== undefined) {
+        this.beeController.addAOA(
+          this.id_AOA ?? this.aoa.position,
+          this.aoa.position,
+          this.aoa.rotation
+        );
+      } else {
+        alert("Id is not correct");
+      }
     });
 
-    this.setAttributes(inputPosX, {
-      name: "x",
-      id: "x",
-      type: "number",
-      value: 0,
-      class: "input-position",
-    });
-    this.setAttributes(inputPosY, {
-      name: "y",
-      id: "y",
-      type: "number",
-      value: 0,
-      class: "input-position",
-    });
-    this.setAttributes(inputPosZ, {
-      name: "z",
-      id: "z",
-      type: "number",
-      value: 0,
-      class: "input-position",
-    });
-    const submit = document.createElement("input");
-    this.setAttributes(submit, {
-      type: "submit",
-      class: "submit-position",
-    });
-    submit.innerText = "Submit";
-    containerInput.append(
-      labelX,
-      inputPosX,
-      labelY,
-      inputPosY,
-      labelZ,
-      inputPosZ
-    );
-    const createAOA = document.createElement("button");
-    this.setAttributes(createAOA, {
-      class: "create-aoa",
-    });
-    createAOA.innerText = "Add";
-
-    const deleteAOA = document.createElement("button");
-    this.setAttributes(deleteAOA, {
-      class: "delete-aoa",
-    });
-    deleteAOA.innerText = "Delete";
-
-    const angleSubmit = document.createElement("div");
-    angleSubmit.className = "submit-setup";
-    angleSubmit.append(labelRotation, inputRotation, submit);
-    form.append(containerInput, angleSubmit);
-
-    createAOA.addEventListener("click", () => {
-      this.beeController.addAOA(
-        this.aoa.id,
-        this.aoa.position,
-        this.aoa.rotation
-      );
-    });
+    const deleteAOA = document.getElementById("delete-aoa");
+    if (!deleteAOA) return;
 
     deleteAOA.addEventListener("click", () => {
-      this.viewer.impl.unloadModel(this.selectedModel);
+      if (this.selectedModel) {
+        this.viewer.impl.unloadModel(this.selectedModel);
+      } else {
+        alert("There is no AOA selected!");
+      }
     });
+  }
 
-    form.addEventListener("submit", (e) => {
+  updateAOA() {
+    const formEditAOA = document.getElementById("form-edit-aoa");
+    if (!formEditAOA) return;
+
+    formEditAOA.addEventListener("submit", (e) => {
       e.preventDefault();
-      this.valueAOA_X = form.elements.namedItem("x").value;
-      this.valueAOA_Y = form.elements.namedItem("y").value;
-      this.valueAOA_Z = form.elements.namedItem("z").value;
-      this.valueAOA_Rotation = form.elements.namedItem("angle").value;
+      this.valueAOA_X = formEditAOA.elements.namedItem("x").value;
+      this.valueAOA_Y = formEditAOA.elements.namedItem("y").value;
+      this.valueAOA_Z = formEditAOA.elements.namedItem("z").value;
+      this.valueAOA_Rotation = formEditAOA.elements.namedItem("angle").value;
       if (
         !isNaN(this.valueAOA_X) &&
         this.valueAOA_X !== "" &&
@@ -148,7 +156,6 @@ export class AOAtools {
         }
       }
     });
-    this.container.append(title, form, createAOA, deleteAOA);
   }
 
   setAttributes(el, attrs) {

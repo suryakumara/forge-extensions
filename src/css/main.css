@@ -1,26 +1,109 @@
 .collapsible {
-  background-color: #777;
+  background-color: #232323;
+  border-bottom: 0.3px solid #e5a600;
   color: white;
   cursor: pointer;
   padding: 1px;
-  border: none;
   text-align: left;
   width: 100%;
+  height: 4rem;
   outline: none;
   font-size: 15px;
 }
-.active,
-.collapsible:hover {
-  background-color: #555;
+
+.collapsible:after {
+  content: "\002B";
+  color: white;
+  font-weight: bold;
+  float: right;
+  margin-right: 10px;
 }
+
+.activesetup:after {
+  content: "\2212";
+}
+
+.activesetup,
+.collapsible:hover {
+  background-color: #000000;
+}
+
 .content {
   /* padding: 0 18px; */
   display: none;
   overflow: hidden;
-  background-color: #7777;
 }
+
 .input-position {
   display: inline-block;
+  outline: none;
+  border: none;
+  height: 1rem;
+  width: 20rem;
+  background: white;
+}
+
+.button-bee {
+  border: 0.5px solid gray;
+  box-sizing: border-box;
+  background-color: #232323;
+  cursor: pointer;
+  height: 30px;
+  width: 20rem;
+  font-size: small;
+  line-height: 30px;
+  vertical-align: middle;
+  margin-top: 0.1rem;
+  padding: 0 5px;
+  color: white;
+  outline: none;
+  text-align: center;
+  outline: none;
+}
+.button-bee:hover {
+  background-color: #000000;
+}
+.latlong-bee {
+  box-sizing: border-box;
+  width: 100%;
+  font-size: small;
+  vertical-align: middle;
+  color: white;
+  outline: none;
+}
+
+.latlong-bee div {
+  font-size: 15px;
+}
+.container-bee {
+  max-width: 30rem;
+  background-color: #232323;
+  color: white;
+}
+
+.button-bee-aoa {
+  border: 0.5px solid gray;
+  box-sizing: border-box;
+  background-color: #232323;
+  cursor: pointer;
+  height: 30px;
+  width: 20rem;
+  font-size: small;
+  line-height: 30px;
+  vertical-align: middle;
+  margin-top: 0.1rem;
+  padding: 0 5px;
+  color: white;
+  outline: none;
+  text-align: center;
+  outline: none;
+}
+.button-bee-aoa:hover {
+  background-color: #000000;
+}
+
+.aoa-config {
+  display: block;
 }
 
 .labelModel {
@@ -46,17 +129,6 @@
   background-size: 24px;
   background-repeat: no-repeat;
   background-position: center;
-}
-
-.containerBuilding {
-  padding: 0.2rem;
-  border: 1px solid #31b35e;
-}
-
-.containerAOA {
-  margin-top: 1rem;
-  padding: 0.2rem;
-  border: 1px solid #e5a600;
 }
 
 #myform {
@@ -110,13 +182,6 @@
   width: 10rem;
 }
 
-.containerRotation {
-  flex-grow: 3;
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
 #myformRotation label {
   margin: 0 3px;
   font-size: small;
@@ -133,17 +198,6 @@
   font-size: small;
 }
 
-.latlong-bee {
-  box-sizing: border-box;
-  background-color: #232323;
-  height: 4rem;
-  font-size: small;
-  line-height: 4rem;
-  vertical-align: middle;
-  margin-top: 0.1rem;
-  padding: 0 5px;
-}
-
 .title-form {
   box-sizing: border-box;
   background-color: #232323;
@@ -151,18 +205,6 @@
   font-size: small;
   line-height: 4rem;
   text-align: center;
-  vertical-align: middle;
-  margin-top: 0.1rem;
-  padding: 0 5px;
-}
-
-.button-bee {
-  box-sizing: border-box;
-  background-color: #232323;
-  cursor: pointer;
-  height: 4rem;
-  font-size: small;
-  line-height: 4rem;
   vertical-align: middle;
   margin-top: 0.1rem;
   padding: 0 5px;
@@ -237,7 +279,7 @@
   position: absolute;
   display: block;
   top: 10px;
-  z-index: 9;
+  z-index: -9;
   right: 0;
   width: 300px;
   height: 300px;
@@ -247,7 +289,7 @@
   position: absolute;
   display: block;
   top: 10px;
-  z-index: 10;
+  z-index: -10;
   right: 0;
   width: 300px;
   height: 300px;
