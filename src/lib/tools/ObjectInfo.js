@@ -8,7 +8,7 @@ export class ObjectInfo {
     const infoPanel = document.createElement("div");
     infoPanel.innerHTML = `
     <div class="container-bee">
-      <button type="button" class="collapsible">Object Info</button>
+      <button type="button" class="collapsible"><div class="glyphicon glyphicon-tags"/><span>Object Info</span></button>
       <div class="content">
         <div>Objet Info</div>
         <div>ID: <span id="infoId"></span></div>

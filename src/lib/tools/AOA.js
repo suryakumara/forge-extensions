@@ -13,13 +13,14 @@ export class AOAtools {
       position: [0, 0, 7],
       rotation: [0, 0, 0],
     };
+    this.id_AOA = null;
   }
 
   AOAsetup() {
     const aoaContainer = document.createElement("div");
     aoaContainer.innerHTML = `
     <div class="container-bee">
-    <button type="button" class="collapsible">AOA Setup</button>
+    <button type="button" class="collapsible"><div class="glyphicon glyphicon-modal-window"/><span>AOA Setup</span></button>
     <div class="content">
       <div class="aoa-bee">
         <form id="form-add-aoa">
@@ -153,6 +154,8 @@ export class AOAtools {
           this.selectedModel.setPlacementTransform(
             translation.multiply(rotationAOA)
           );
+        } else {
+          alert("There is no AOA selected");
         }
       }
     });

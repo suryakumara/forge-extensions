@@ -37,18 +37,17 @@ export class InfoCardUI {
   }
 
   infoCardSetup() {
-    const infoModel = document.createElement("input");
-    const infoModelLabel = document.createElement("label");
-
-    infoModelLabel.innerText = "Info Model";
-
-    this.setAttributes(infoModel, {
+    const infoCardContainer = document.createElement("div");
+    const infoCardInput = document.createElement("input");
+    const InfoCardLabel = document.createElement("label");
+    InfoCardLabel.innerText = "Info Model";
+    this.setAttributes(infoCardInput, {
       type: "checkbox",
       id: "toggleInfoModel",
     });
-
-    infoModel.addEventListener("change", () => {
-      if (infoModel.checked) {
+    infoCardContainer.append(infoCardInput, InfoCardLabel);
+    infoCardInput.addEventListener("change", () => {
+      if (infoCardInput.checked) {
         this.enabledIcon = true;
         console.log("infoCard activated");
       } else {
@@ -57,7 +56,7 @@ export class InfoCardUI {
         this.clearInfoCard();
       }
     });
-    this.container.append(infoModel, infoModelLabel);
+    this.container.append(infoCardContainer);
   }
 
   showIcon(dbId, objectInfo, posModel) {
@@ -106,7 +105,6 @@ export class InfoCardUI {
   }
 
   checkIfOutofContainer() {
-    // this.viewer.addEventListener(Autodesk.Viewing.CAMERA_CHANGE_EVENT, () => {
     if (!this.selectedModelCard) {
       return;
     }
@@ -118,10 +116,8 @@ export class InfoCardUI {
     );
     const frustum = new THREE.Frustum().setFromMatrix(matrix);
     const bbox = this.selectedModelCard.getBoundingBox();
-    console.log("Model in the view?", frustum.intersectsBox(bbox));
     const isModelInContainer = frustum.intersectsBox(bbox);
     return isModelInContainer;
-    // });
   }
 
   selectedModel(model) {

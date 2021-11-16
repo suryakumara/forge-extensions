@@ -9,7 +9,7 @@ export class RestrictedArea {
     const restrictedArea = document.createElement("div");
     restrictedArea.innerHTML = `
     <div class="container-bee">
-    <button type="button" class="collapsible">Restricted Area Setup</button>
+    <button type="button" class="collapsible"><div class="glyphicon glyphicon-warning-sign"/><span>Restricted Area Setup</span></button>
     <div class="content">
       <form id="form-edit-restricted">
         <div>

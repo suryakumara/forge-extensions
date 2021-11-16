@@ -6,18 +6,20 @@ export class RotateCamera {
   }
 
   rotateCameraSetup() {
-    const rotateElement = document.createElement("input");
-    const rotateLabel = document.createElement("label");
+    const rotateCameraContainer = document.createElement("div");
+    const rotateCameraInput = document.createElement("input");
+    const rotateCameraLabel = document.createElement("label");
 
-    rotateLabel.innerText = "Rotate Camera";
+    rotateCameraLabel.innerText = "Rotate Camera";
 
-    this.setAttributes(rotateElement, {
+    this.setAttributes(rotateCameraInput, {
       type: "checkbox",
       id: "toggleRotate",
     });
 
-    rotateElement.addEventListener("change", () => {
-      if (rotateElement.checked) {
+    rotateCameraContainer.append(rotateCameraInput, rotateCameraLabel);
+    rotateCameraInput.addEventListener("change", () => {
+      if (rotateCameraInput.checked) {
         this.started = true;
         this.rotateCamera();
         console.log("activate rotated camera");
@@ -26,7 +28,7 @@ export class RotateCamera {
         console.log("unactivate rotated camera");
       }
     });
-    this.container.append(rotateElement, rotateLabel);
+    this.container.append(rotateCameraContainer);
   }
 
   rotateCamera = () => {

@@ -10,7 +10,7 @@ export class Building {
     const containerInput = document.createElement("div");
     containerInput.innerHTML = `
     <div class="container-bee">
-    <button type="button" class="collapsible">Building Setup</button>
+    <button type="button" class="collapsible"><div class="glyphicon glyphicon-blackboard"/><span>Building Setup</span></button>
     <div class="content">
       <div class="latlong-bee">
         <div id="lat-bee">Lat :</div>

@@ -7,49 +7,12 @@ export class InitialModel {
   }
 
   setupInitialModel() {
-    const humaProp = {
-      id: "12A312",
-      position: [10, 10, 0],
-      rotation: [0, 0, 0],
-    };
+    this.initRestrictedArea();
+    this.initWorker();
+    this.initExcavator();
+  }
 
-    this.beeController.addNewWorker(
-      humaProp.id,
-      humaProp.position,
-      humaProp.rotation
-    );
-
-    const excavatorProps = {
-      id: "E1231A43",
-      position: [5, 10, 0],
-      rotation: [0, 0, 0],
-    };
-
-    this.beeController.addExcavator(
-      excavatorProps.id,
-      excavatorProps.position,
-      excavatorProps.rotation
-    );
-
-    const beaconProp = {
-      id: "E143231A43",
-      position: [-5, 10, 0],
-      rotation: [0, 0, 0],
-    };
-    this.beeController.addBeacon(
-      beaconProp.id,
-      beaconProp.position,
-      beaconProp.rotation
-    );
-
-    // const resA = {
-    //   id: "12312",
-    //   position: [0, 10, 0],
-    //   rotation: [0, 0, 0],
-    // };
-
-    // this.beeController.addRestrictedArea(resA.id, resA.position, resA.rotation);
-
+  initRestrictedArea() {
     const resCust = {
       id: "E143231A43",
       geoLocation: [
@@ -72,5 +35,51 @@ export class InitialModel {
       newCoords,
       resCust.height
     );
+  }
+
+  initExcavator() {
+    const excavatorProps = {
+      id: "E1231A43",
+      position: [5, 20, 0],
+      rotation: [0, 0, 0],
+    };
+
+    this.beeController.addExcavator(
+      excavatorProps.id,
+      excavatorProps.position,
+      excavatorProps.rotation
+    );
+  }
+
+  initWorker() {
+    const humaProp = {
+      id: "12A312",
+      position: [10, 10, 0],
+      rotation: [0, 0, 0],
+    };
+
+    this.beeController.addNewWorker(
+      humaProp.id,
+      humaProp.position,
+      humaProp.rotation
+    );
+  }
+
+  initBeacon() {
+    const beaconProp = {
+      id: "E143231A43",
+      position: [-5, 10, 0],
+      rotation: [0, 0, 0],
+    };
+    this.beeController.addBeacon(
+      beaconProp.id,
+      beaconProp.position,
+      beaconProp.rotation
+    );
+  }
+
+  gridAndWindDirection() {
+    this.beeController.addGrid();
+    this.beeController.addWindDirection(1233);
   }
 }

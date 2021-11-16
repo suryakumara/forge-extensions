@@ -1,10 +1,5 @@
-/* mapboxgl */
-import "../css/main.css";
 import { BeeInventorModel } from "./BeeInventorModel";
 import { CoordinateConverter } from "./CoordinateConverter";
-import { EditableGeoJsonLayer } from "@nebula.gl/layers";
-import { DrawPolygonMode } from "@nebula.gl/edit-modes";
-import { Deck } from "@deck.gl/core";
 import { DarkMode } from "./tools/DarkMode";
 import { TransformToolUI } from "./tools/TransformTools";
 import { InfoCardUI } from "./tools/InfoCard";
@@ -15,6 +10,8 @@ import { InitialModel } from "./InitialSetupModel";
 import { MainConverter } from "./MainConverter";
 import { RestrictedArea } from "./tools/RestrictedArea";
 import { ObjectInfo } from "./tools/ObjectInfo";
+
+import "../css/main.css";
 
 export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
   constructor(viewer, container, id, title, options) {
@@ -32,13 +29,24 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       resize: auto;
     `;
 
-    this.containerBuilding = document.createElement("div");
-    this.containerBuilding.className = "containerBuilding";
-    this.container.append(this.containerBuilding);
-
     this.containerInfo = document.createElement("div");
     this.containerInfo.className = "containerInfo";
     this.container.append(this.containerInfo);
+
+    const genTool = document.createElement("div");
+    genTool.className = "generalTool";
+    genTool.innerHTML = `
+    <div class="container-bee">
+       <button type="button" class="collapsible"><div class="glyphicon glyphicon-tasks"/><span>General Tool</span></button>
+       <div class="content" id="containerGeneralTool"></div>
+    </div>
+    `;
+    this.container.append(genTool);
+    this.containerGeneralTool = document.getElementById("containerGeneralTool");
+
+    this.containerBuilding = document.createElement("div");
+    this.containerBuilding.className = "containerBuilding";
+    this.container.append(this.containerBuilding);
 
     this.containerAOA = document.createElement("div");
     this.containerAOA.className = "containerAOA";
@@ -48,25 +56,6 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.containerRestrictedArea.className = "containerRA";
     this.container.append(this.containerRestrictedArea);
 
-    const genTool = document.createElement("div");
-    genTool.className = "generalTool";
-    genTool.innerHTML = `
-    <div class="container-bee">
-       <button type="button" class="collapsible">General Tool</button>
-       <div class="content" id="containerGeneralTool"></div>
-    </div>
-    `;
-    this.container.append(genTool);
-    this.containerGeneralTool = document.getElementById("containerGeneralTool");
-
-    this.sceneBuilder = null;
-
-    this.infoId = null;
-    this.infoPosition = null;
-    this.infoRotation = null;
-    this.infoLatitude = null;
-    this.infoLongitude = null;
-    this.started = false;
     this.selectedModel = null;
     this.selectedModelRotation = null;
 
@@ -86,105 +75,27 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       this.onSelection
     );
 
-    document.onmousemove = (event) => {
-      if (event.ctrlKey) {
-        const viewerContainer = document.querySelector(
-          `#${this.viewer.clientContainer.id}`
-        );
-        const containerSize = viewerContainer.getBoundingClientRect();
-
-        let res = this.viewer.impl.hitTest(
-          event.clientX - containerSize.left,
-          event.clientY - containerSize.top,
-          true,
-          null,
-          [this.viewer.model.getModelId()]
-        );
-        let pt = null;
-
-        if (res) {
-          pt = res.intersectPoint;
-        } else {
-          pt = viewer.impl.intersectGround(
-            event.clientX - containerSize.left,
-            event.clientY - containerSize.top
-          );
-        }
-
-        let tr = this.selectedModel.getPlacementTransform();
-        tr.elements[12] = pt.x;
-        tr.elements[13] = pt.y;
-        tr.elements[14] = pt.z;
-        this.selectedModel.setPlacementTransform(tr);
-        this.viewer.impl.invalidate(true, true, true);
-      }
-    };
-
-    this.markerMap = new Map();
     this.socket = io("http://localhost:3333");
     this.beeController = new BeeInventorModel(this.viewer, this.options);
     this.coordinateConverter = new CoordinateConverter(
       25.069771049083982,
       121.52045303099948
     );
-    // mapbox
-    this.containerMapbox = document.createElement("div");
-    this.containerMapbox.setAttribute("id", "map");
-
-    this.viewerContainer.append(this.containerMapbox);
-
-    mapboxgl.accessToken =
-      "pk.eyJ1IjoiYmVlaW52ZW50b3IiLCJhIjoiY2p1anFjbTY0MW9hMDRlcDRzMW9tcHJ1OSJ9.9WIfYAKd10XIdwWpB9EZFQ";
-    this.map = new mapboxgl.Map({
-      container: "map",
-      style: "mapbox://styles/mapbox/streets-v11",
-      center: [121.52045303099948, 25.069771049083982],
-    });
-    this.map.zoomTo(19.5);
-
-    this.centralMarker = new mapboxgl.Marker();
-    this.centralMarker
-      .setLngLat([121.52045303099948, 25.069771049083982])
-      .addTo(this.map);
-
-    // deckgl
-    this.containerDeckGl = document.createElement("canvas");
-    this.containerDeckGl.setAttribute("id", "deck");
-
-    this.viewerContainer.append(this.containerDeckGl);
-
-    const layers = this.getLayers();
-    const editableGeoJsonLayer = layers[0];
-    const INITIAL_VIEW_STATE = {
-      latitude: 25.069771049083982,
-      longitude: 121.52045303099948,
-      zoom: 15,
-      bearing: 0,
-      pitch: 0,
-    };
-
-    this.deck = new Deck({
-      initialViewState: INITIAL_VIEW_STATE,
-      canvas: "deck",
-      width: 300,
-      height: 300,
-      layers: layers,
-      controller: {
-        doubleClickZoom: false,
-      },
-      getCursor: editableGeoJsonLayer.getCursor.bind(editableGeoJsonLayer),
-    });
-
-    this.init();
 
     // init Model
     this.initModel = new InitialModel(this.viewer, this.options, {
       converter: this.coordinateConverter,
       controllerModel: this.beeController,
     });
+    this.initModel.gridAndWindDirection();
     this.initModel.setupInitialModel();
 
     this.getDataUWB();
+
+    // Object Info
+    this.objectInfo = new ObjectInfo(this.viewer, this.containerInfo);
+    this.objectInfo.objectInfoSetup();
+
     // Building Setup
     this.geoBuilding = this.coordinateConverter.getCenter();
     this.buildingTool = new Building(this.viewer, this.containerBuilding);
@@ -193,16 +104,12 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     this.buildingTool.updateLatLong(this.geoBuilding);
     this.buildingTool.updateVisibility();
 
-    // Object Info
-
-    this.objectInfo = new ObjectInfo(this.viewer, this.containerInfo);
-    this.objectInfo.objectInfoSetup();
-
     // AOA Setup
     this.setupAOA = new AOAtools(this.viewer, this.containerAOA, this.options, {
       controllerModel: this.beeController,
     });
     this.setupAOA.AOAsetup(this.selectedModel);
+    this.setupAOA.updateAOA();
     this.setupAOA.AOAexistence();
 
     // InfoCard Setup
@@ -251,59 +158,6 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
         }
       });
     }
-  }
-
-  getLayers() {
-    const COUNTRIES =
-      "https://d2ad6b4ur7yvpq.cloudfront.net/naturalearth-3.3.0/ne_50m_admin_0_scale_rank.geojson"; //eslint-disable-line
-    let myFeatureCollection = {
-      type: "FeatureCollection",
-      features: [],
-    };
-    const layers = [
-      new EditableGeoJsonLayer({
-        id: "nebula",
-        data: myFeatureCollection,
-        selectedFeatureIndexes: [],
-        mode: DrawPolygonMode,
-
-        // Styles
-        filled: true,
-        pointRadiusMinPixels: 2,
-        pointRadiusScale: 2000,
-        extruded: true,
-        getElevation: 1000,
-        getFillColor: [200, 0, 80, 180],
-
-        // Interactive props
-        pickable: true,
-        autoHighlight: true,
-
-        onEdit: ({ updatedData }) => {
-          myFeatureCollection = updatedData;
-          this.deck.setProps({ layers: this.getLayers() });
-          const features = myFeatureCollection.features[0];
-
-          if (features) {
-            const resCust = {
-              id: "E143231A43sdfds",
-              geoLocation: [...features.geometry.coordinates[0]],
-              height: 5,
-            };
-            const newCoords = this.coordinateConverter.geographicToCartesian2D(
-              resCust.geoLocation
-            );
-            this.beeController.addCustomRestrictedArea(
-              resCust.id,
-              newCoords,
-              resCust.height
-            );
-          }
-        },
-      }),
-    ];
-
-    return layers;
   }
 
   onSelection(event) {
@@ -376,11 +230,6 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     }
   }
 
-  init() {
-    this.beeController.addGrid();
-    this.beeController.addWindDirection(1233);
-  }
-
   getDataUWB() {
     this.socket.on("UpdateUWB", (data) => {
       this.getDatasUWB(data);
@@ -393,7 +242,9 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
 
   getDatasUWB(datas) {
     const datasAOA = datas;
-    const AOA = this.beeController.objects.get(this.aoa.id);
+    const AOA_id = this.setupAOA.id_AOA;
+    const AOA = this.beeController.objects.get(AOA_id);
+
     if (AOA) {
       const AOAproperty = AOA.getPlacementTransform();
 
@@ -419,7 +270,7 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       );
 
       const beeObjects = this.beeController.objects;
-      if (!beeObjects.has(datasAOA.id) && !this.markerMap.has(datasAOA.id)) {
+      if (!beeObjects.has(datasAOA.id)) {
         this.beeController.addNewWorker(datasAOA.id, coordAOA);
       } else {
         const worker = this.beeController.objects.get(datasAOA.id);
@@ -445,21 +296,8 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
     );
 
     const beeObjects = this.beeController.objects;
-    if (!beeObjects.has(datas.id) && !this.markerMap.has(datas.id)) {
+    if (!beeObjects.has(datas.id)) {
       this.beeController.addNewWorker(datas.id, datas.position);
-
-      const el = document.createElement("div");
-      el.className = "worker workerMarker";
-      const newMarker = new mapboxgl.Marker(el, {
-        offset: [0, -20],
-      })
-        .setLngLat({
-          lat: geo.latitude,
-          lng: geo.longitude,
-        })
-        .addTo(this.map);
-
-      this.markerMap.set(datas.id, newMarker);
     } else {
       const worker = beeObjects.get(datas.id);
       worker.setPlacementTransform(
@@ -469,32 +307,11 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
           z: datas.position[2],
         })
       );
-      this.markerMap.get(datas.id).setLngLat({
-        lat: geo.latitude,
-        lng: geo.longitude,
-      });
     }
 
-    if (!beeObjects.has(datas.idPlant) && !this.markerMap.has(datas.idPlant)) {
-      const pl = document.createElement("div");
-      pl.className = "plant plantMarker";
-      const plantMarker = new mapboxgl.Marker(pl, {
-        offset: [0, -20],
-      })
-        .setLngLat({
-          lat: datas.positionPlant[0],
-          lng: datas.positionPlant[1],
-        })
-        .addTo(this.map);
-      this.markerMap.set(datas.idPlant, plantMarker);
-
+    if (!beeObjects.has(datas.idPlant)) {
       this.beeController.addExcavator(datas.idPlant, positionPlant);
     } else {
-      this.markerMap.get(datas.idPlant).setLngLat({
-        lat: datas.positionPlant[0],
-        lng: datas.positionPlant[1],
-      });
-
       const plant = beeObjects.get(datas.idPlant);
       plant.setPlacementTransform(
         new THREE.Matrix4().setPosition({
@@ -520,5 +337,41 @@ export class BeeInventorPanel extends Autodesk.Viewing.UI.DockingPanel {
       this.onSelection
     );
     this.beeController.unloadModel();
+  }
+
+  handleAOAbyMouse() {
+    document.onmousemove = (event) => {
+      if (event.ctrlKey) {
+        const viewerContainer = document.querySelector(
+          `#${this.viewer.clientContainer.id}`
+        );
+        const containerSize = viewerContainer.getBoundingClientRect();
+
+        let res = this.viewer.impl.hitTest(
+          event.clientX - containerSize.left,
+          event.clientY - containerSize.top,
+          true,
+          null,
+          [this.viewer.model.getModelId()]
+        );
+        let pt = null;
+
+        if (res) {
+          pt = res.intersectPoint;
+        } else {
+          pt = viewer.impl.intersectGround(
+            event.clientX - containerSize.left,
+            event.clientY - containerSize.top
+          );
+        }
+
+        let tr = this.selectedModel.getPlacementTransform();
+        tr.elements[12] = pt.x;
+        tr.elements[13] = pt.y;
+        tr.elements[14] = pt.z;
+        this.selectedModel.setPlacementTransform(tr);
+        this.viewer.impl.invalidate(true, true, true);
+      }
+    };
   }
 }

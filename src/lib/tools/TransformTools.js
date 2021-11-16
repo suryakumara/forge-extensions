@@ -10,16 +10,16 @@ export class TransformToolUI {
   }
 
   transformToolSetup() {
+    const transfromContainer = document.createElement("div");
     const transformTool = document.createElement("input");
     const transformToolLabel = document.createElement("label");
-
     transformToolLabel.innerText = "AOA Transform";
 
     this.setAttributes(transformTool, {
       type: "checkbox",
       id: "toggleTransformTool",
     });
-
+    transfromContainer.append(transformTool, transformToolLabel);
     transformTool.addEventListener("change", () => {
       if (transformTool.checked) {
         this._enableTransformTool();
@@ -27,11 +27,11 @@ export class TransformToolUI {
         this._disableTransformTool();
       }
     });
-    this.container.append(transformTool, transformToolLabel);
+    this.container.append(transfromContainer);
   }
 
   _enableTransformTool() {
-    alert("please select a model in the scene.");
+    alert("Please select a AOA in the scene.");
     const controller = this.viewer.toolController;
     if (!this._tool) {
       this._tool = new TransformTool();

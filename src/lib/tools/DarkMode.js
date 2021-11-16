@@ -5,25 +5,25 @@ export class DarkMode {
   }
 
   darkModeToolSetup() {
-    const darkModeTool = document.createElement("input");
+    const darkModeContainer = document.createElement("div");
+    const darkModeInput = document.createElement("input");
     const darkModeLabel = document.createElement("label");
-
     darkModeLabel.innerText = "Dark Mode";
 
-    this.setAttributes(darkModeTool, {
+    this.setAttributes(darkModeInput, {
       type: "checkbox",
       id: "toggleDarkmode",
     });
-
-    darkModeTool.addEventListener("change", () => {
-      if (darkModeTool.checked) {
+    darkModeContainer.append(darkModeInput, darkModeLabel);
+    darkModeInput.addEventListener("change", () => {
+      if (darkModeInput.checked) {
         this.activate();
       } else {
         this.deactivate();
       }
     });
 
-    this.container.append(darkModeTool, darkModeLabel);
+    this.container.append(darkModeContainer);
   }
 
   activate() {
